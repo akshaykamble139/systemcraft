@@ -1,0 +1,291 @@
+/* Basic Reset and Typography */
+body {
+    font-family: 'Roboto', sans-serif; /* Using a modern Google Font */
+    text-align: center;
+    background: linear-gradient(to bottom, #f0f4f8, #d9e2ec); /* Subtle gradient background */
+    color: #333;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: grid; /* Use CSS Grid for overall layout */
+    grid-template-areas:
+        "header header"
+        "main sidebar"
+        "footer footer"; /* Define grid areas */
+    grid-template-columns: 3fr 1fr; /* Main content wider than sidebar */
+    grid-template-rows: auto 1fr auto; /* Header/footer auto, main content takes remaining space */
+    gap: 20px; /* Gap between grid areas */
+}
+
+h1 {
+    grid-area: header; /* Assign header to grid area */
+    margin: 20px 0;
+    color: #0056b3; /* A primary blue color */
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Main layout container */
+.system-layout {
+    grid-area: main; /* Architecture goes in the main area */
+    display: flex;
+    flex-direction: column; /* Stack architecture and actions vertically */
+    align-items: center;
+    padding: 20px;
+    background-color: #fff; /* White background for the main area */
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-left: 20px; /* Add some margin */
+}
+
+/* Architecture Layout - Vertical Flow */
+.architecture {
+    display: flex;
+    flex-direction: column; /* Stack components and arrows vertically */
+    align-items: center; /* Center items horizontally in the column */
+    gap: 25px; /* Increase gap between vertical layers */
+    padding: 20px;
+}
+
+/* Component Styling */
+.component {
+    padding: 18px 25px; /* More padding */
+    border: 1px solid #b0bec5; /* Softer border */
+    border-radius: 8px; /* Slightly less rounded */
+    min-width: 120px; /* Slightly wider minimum */
+    text-align: center;
+    font-weight: 600; /* Slightly less bold */
+    background-color: #eceff1; /* Light grey background */
+    color: #263238; /* Darker text */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Softer shadow */
+    transition: all 0.3s ease; /* Smooth transitions for all properties */
+    cursor: pointer; /* Indicate clickable */
+}
+
+/* Specific Component Colors */
+.client { background-color: #e3f2fd; border-color: #90caf9; color: #1565c0; } /* Light Blue */
+.load-balancer { background-color: #fff3e0; border-color: #ffb74d; color: #ef6c00; } /* Light Orange */
+.server-group {
+    display: flex;
+    flex-direction: row; /* Servers still horizontal within the layer */
+    gap: 15px; /* Space between servers */
+    margin: 0; /* Remove margin if flex container handles spacing */
+}
+
+/* Style individual servers within the group */
+.server-group .component {
+    min-width: 100px; /* Allow servers to be a bit smaller */
+    padding: 15px 20px;
+}
+
+.cache { background-color: #e1bee7; border-color: #ba68c8; color: #6a1b9a; } /* Light Purple */
+.database { background-color: #c8e6c9; border-color: #81c784; color: #388e3c; } /* Light Green */
+
+
+/* Arrow Styling - Positioned relatively for vertical flow */
+.arrow {
+    font-size: 30px; /* Slightly smaller arrows */
+    font-weight: bold;
+    color: #90a4ae; /* Subtle grey */
+    margin: 0; /* Remove margin */
+    /* Position vertically between components */
+     display: block; /* Treat arrow as a block for vertical spacing */
+     height: 20px; /* Give it some height for the gap */
+     line-height: 20px; /* Center the arrow char vertically */
+     text-align: center;
+}
+
+/* Adjust specific arrow margins if needed */
+.arrow.server-to-cache,
+.arrow.cache-to-db {
+    /* Default vertical spacing is handled by parent .architecture gap */
+}
+
+/* Component Highlight */
+.component.highlight {
+    border-color: #00796b;
+    box-shadow: 0 0 12px rgba(0, 121, 107, 0.8); /* More prominent glow */
+    /* transform: scale(1.03); /* Subtle scale effect */
+}
+
+/* Failed Component State */
+.component.failed {
+    background-color: #ffcdd2 !important; /* Light red */
+    border-color: #e57373; /* Red */
+    color: #c62828; /* Dark red text */
+    text-decoration: line-through;
+    opacity: 0.8; /* Slightly less opaque */
+    pointer-events: none; /* Make failed components not clickable */
+}
+
+
+/* Actions (Send Request Button) */
+.actions {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+button#sendRequestBtn {
+    padding: 12px 25px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+button#sendRequestBtn:hover {
+    background-color: #0056b3;
+}
+
+/* Panel Styling (Logs, Metrics, Tinker) */
+.logs,
+.metrics,
+.tinker-panel {
+    background: #ffffff; /* White background */
+    border: 1px solid #e0e0e0; /* Light grey border */
+    padding: 15px;
+    margin: 0; /* Remove auto margins */
+    width: auto; /* Auto width within sidebar */
+    text-align: left;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+/* Sidebar Container */
+.sidebar {
+     grid-area: sidebar; /* Assign sidebar panels to sidebar area */
+     display: flex;
+     flex-direction: column;
+     gap: 20px; /* Space between panels */
+     padding: 20px; /* Add padding to sidebar area */
+     margin-right: 20px; /* Add some margin */
+}
+
+/* Assign panels to the sidebar if they are direct children of body or a sidebar container */
+/* Assuming you wrap logs, metrics, tinker-panel in a new div with class 'sidebar' */
+/*
+<div class="sidebar">
+    <div class="tinker-panel">...</div>
+    <div class="logs">...</div>
+    <div class="metrics">...</div>
+</div>
+*/
+
+
+.logs h2,
+.metrics h2,
+.tinker-panel h2 {
+    margin-top: 0;
+    color: #555;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+
+#logContainer {
+    height: 200px; /* Slightly taller logs */
+    overflow-y: auto;
+    background: #f8f9fa; /* Very light grey */
+    padding: 10px;
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; /* Monospaced font */
+    font-size: 0.9em; /* Slightly smaller font */
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    white-space: pre-wrap; /* Wrap log lines */
+    word-wrap: break-word;
+}
+
+/* Metrics Styling */
+.metrics p {
+    margin: 8px 0;
+    font-size: 0.95em;
+    color: #444;
+}
+
+.metrics p span {
+    font-weight: bold;
+    color: #007bff; /* Blue color for values */
+}
+
+/* Tinker Panel Button Styling */
+.tinker-panel button {
+    margin: 5px; /* Space around buttons */
+    padding: 10px 15px;
+    font-size: 0.9em;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.tinker-panel button:hover {
+    background-color: #e0e0e0;
+}
+
+
+/* Animation Container */
+#animationContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1; /* Ensure dots are above background but potentially below panels */
+}
+
+.request-dot {
+    position: absolute;
+    width: 10px; /* Slightly smaller dots */
+    height: 10px;
+    background-color: #007bff; /* Match primary button color */
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.6); /* Glow effect */
+    transform: translate(-50%, -50%); /* Center the dot */
+    z-index: 2; /* Ensure dots are above architecture components */
+    /* Transition is set by JS */
+}
+
+/* Footer (Optional Grid Area) */
+/*
+footer {
+    grid-area: footer;
+    text-align: center;
+    padding: 10px;
+    color: #777;
+    font-size: 0.9em;
+}
+*/
+
+/* Responsive Adjustments (Basic) */
+@media (max-width: 900px) {
+    body {
+        grid-template-areas:
+            "header"
+            "main"
+            "sidebar"
+            "footer";
+        grid-template-columns: 1fr; /* Stack everything in one column */
+        grid-template-rows: auto 1fr auto auto auto;
+    }
+     .system-layout, .sidebar {
+         margin: 10px;
+         padding: 15px;
+     }
+     .architecture {
+         gap: 15px;
+     }
+     .component {
+         min-width: auto;
+         padding: 12px 15px;
+     }
+     .arrow {
+         font-size: 25px;
+     }
+}
