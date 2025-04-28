@@ -11,51 +11,74 @@
 <body>
     <h1>SystemCraft</h1>
 
-    <div class="system-layout">
-        <div class="architecture">
+    <div class="system-layout"> <div class="architecture">
             <div class="component client">Client</div>
             <div class="arrow">↓</div>
 
             <div class="component load-balancer">Load Balancer</div>
-            <div class="arrow">↓</div> <div class="server-group">
+            <div class="arrow">↓</div>
+            <div class="server-group">
                 <div class="component server1">Server 1</div>
                 <div class="component server2">Server 2</div>
-                </div>
+            </div>
 
-            <div class="arrow server-to-cache">↓</div> <div class="component cache">Cache</div>
+            <div class="arrow server-to-cache">↓</div>
+            <div class="component cache">Cache</div>
 
-             <div class="arrow cache-to-db">↓</div> <div class="component database">Database</div>
+            <div class="arrow cache-to-db">↓</div>
+            <div class="component database">Database</div>
         </div>
 
-        <div class="actions">
-            <button id="sendRequestBtn">Send Request</button>
         </div>
-    </div>
 
-    <div class="sidebar">
-        <div class="tinker-panel">
-            <h2>Tinker Mode</h2>
+    <div class="sidebar"> <div class="traffic-controls panel"> <h2>Traffic Simulation</h2>
+             <button id="sendRequestBtn">Send Single Request</button>
+             <button id="sendBatchBtn">Send 10 Requests</button>
+             </div>
+
+        <div class="tinker-panel panel"> <h2>Tinker Mode</h2>
             <button id="addServerBtn">Add Server</button>
             <button id="removeServerBtn">Remove Server</button>
             <button id="killRandomServerBtn">Kill Random Server</button>
             <button id="reviveRandomServerBtn">Revive Random Server</button>
+
+            <hr>
+            <h3>Simulation Parameters</h3>
+             <div class="param-group"> <label for="dbLatencyInput">DB Latency (ms):</label>
+                 <input type="number" id="dbLatencyInput" value="300" min="50" max="2000">
+             </div>
+             <div class="param-group">
+                 <label for="serverProcessingInput">Server Process (ms):</label>
+                 <input type="number" id="serverProcessingInput" value="200" min="20" max="1000">
+             </div>
+             <div class="param-group">
+                 <label for="cacheHitRateInput">Cache Hit Rate (%):</label>
+                 <input type="number" id="cacheHitRateInput" value="70" min="0" max="100">
+             </div>
             </div>
 
-        <div class="logs">
-            <h2>Event Logs</h2>
+        <div class="logs panel"> <h2>Event Logs</h2>
             <div id="logContainer"></div>
         </div>
 
-        <div class="metrics">
-            <h2>Metrics</h2>
+        <div class="metrics panel"> <h2>Metrics</h2>
             <p>Requests: <span id="requestCount">0</span></p>
             <p>Average Response Time: <span id="avgResponseTime">0</span> ms</p>
             <p>Cache Hits: <span id="cacheHits">0</span></p>
             <p>Cache Misses: <span id="cacheMisses">0</span></p>
             <p>Cache Hit Rate: <span id="cacheHitRate">0%</span></p>
-            </div>
+        </div>
     </div>
 
+    <div id="componentDetailModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeModalBtn">&times;</span>
+            <h3 id="modalComponentName">Component Details</h3>
+            <div id="modalComponentDetails">
+                <p>Select a component to see details.</p>
+            </div>
+        </div>
+    </div>
 
     <div id="animationContainer"></div>
 

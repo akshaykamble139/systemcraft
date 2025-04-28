@@ -1,8 +1,8 @@
 /* Basic Reset and Typography */
 body {
-    font-family: 'Roboto', sans-serif; /* Using a modern Google Font */
+    font-family: 'Roboto', sans-serif;
     text-align: center;
-    background: linear-gradient(to bottom, #f0f4f8, #d9e2ec); /* Subtle gradient background */
+    background: linear-gradient(to bottom, #f0f4f8, #d9e2ec);
     color: #333;
     margin: 0;
     padding: 0;
@@ -10,151 +10,127 @@ body {
     display: grid; /* Use CSS Grid for overall layout */
     grid-template-areas:
         "header header"
-        "main sidebar"
-        "footer footer"; /* Define grid areas */
-    grid-template-columns: 3fr 1fr; /* Main content wider than sidebar */
-    grid-template-rows: auto 1fr auto; /* Header/footer auto, main content takes remaining space */
+        "main sidebar" /* Reverted grid areas */
+        "footer footer";
+    grid-template-columns: 3fr 1fr; /* Reverted column widths */
+    grid-template-rows: auto 1fr auto;
     gap: 20px; /* Gap between grid areas */
 }
 
 h1 {
-    grid-area: header; /* Assign header to grid area */
+    grid-area: header;
     margin: 20px 0;
-    color: #0056b3; /* A primary blue color */
+    color: #0056b3;
     font-weight: 700;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* Main layout container */
+/* Main layout container - Reverted */
 .system-layout {
     grid-area: main; /* Architecture goes in the main area */
     display: flex;
     flex-direction: column; /* Stack architecture and actions vertically */
     align-items: center;
     padding: 20px;
-    background-color: #fff; /* White background for the main area */
+    background-color: #fff;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    margin-left: 20px; /* Add some margin */
+    box-shadow: 0 44px 20px rgba(0, 0, 0, 0.1); /* Corrected typo from 0 4px */
+    margin-left: 20px;
 }
 
-/* Architecture Layout - Vertical Flow */
+/* Architecture Layout - Vertical Flow (Keep existing) */
 .architecture {
     display: flex;
-    flex-direction: column; /* Stack components and arrows vertically */
-    align-items: center; /* Center items horizontally in the column */
-    gap: 25px; /* Increase gap between vertical layers */
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
     padding: 20px;
 }
 
-/* Component Styling */
+/* Component Styling (Keep existing) */
 .component {
-    padding: 18px 25px; /* More padding */
-    border: 1px solid #b0bec5; /* Softer border */
-    border-radius: 8px; /* Slightly less rounded */
-    min-width: 120px; /* Slightly wider minimum */
+    padding: 18px 25px;
+    border: 1px solid #b0bec5;
+    border-radius: 8px;
+    min-width: 120px;
     text-align: center;
-    font-weight: 600; /* Slightly less bold */
-    background-color: #eceff1; /* Light grey background */
-    color: #263238; /* Darker text */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Softer shadow */
-    transition: all 0.3s ease; /* Smooth transitions for all properties */
-    cursor: pointer; /* Indicate clickable */
+    font-weight: 600;
+    background-color: #eceff1;
+    color: #263238;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
-/* Specific Component Colors */
-.client { background-color: #e3f2fd; border-color: #90caf9; color: #1565c0; } /* Light Blue */
-.load-balancer { background-color: #fff3e0; border-color: #ffb74d; color: #ef6c00; } /* Light Orange */
+/* Specific Component Colors (Keep existing) */
+.client { background-color: #e3f2fd; border-color: #90caf9; color: #1565c0; }
+.load-balancer { background-color: #fff3e0; border-color: #ffb74d; color: #ef6c00; }
 .server-group {
     display: flex;
-    flex-direction: row; /* Servers still horizontal within the layer */
-    gap: 15px; /* Space between servers */
-    margin: 0; /* Remove margin if flex container handles spacing */
+    flex-direction: row; /* Servers horizontal */
+    gap: 15px;
+    margin: 0;
+     /* Reverted: Remove nowrap or overflow-x settings from here */
+     /* flex-wrap: nowrap; */
 }
 
-/* Style individual servers within the group */
+/* Style individual servers within the group (Keep existing) */
 .server-group .component {
-    min-width: 100px; /* Allow servers to be a bit smaller */
+    min-width: 100px;
     padding: 15px 20px;
 }
 
-.cache { background-color: #e1bee7; border-color: #ba68c8; color: #6a1b9a; } /* Light Purple */
-.database { background-color: #c8e6c9; border-color: #81c784; color: #388e3c; } /* Light Green */
+.cache { background-color: #e1bee7; border-color: #ba68c8; color: #6a1b9a; }
+.database { background-color: #c8e6c9; border-color: #81c784; color: #388e3c; }
 
 
-/* Arrow Styling - Positioned relatively for vertical flow */
+/* Arrow Styling (Keep existing) */
 .arrow {
-    font-size: 30px; /* Slightly smaller arrows */
+    font-size: 30px;
     font-weight: bold;
-    color: #90a4ae; /* Subtle grey */
-    margin: 0; /* Remove margin */
-    /* Position vertically between components */
-     display: block; /* Treat arrow as a block for vertical spacing */
-     height: 20px; /* Give it some height for the gap */
-     line-height: 20px; /* Center the arrow char vertically */
+    color: #90a4ae;
+    margin: 0;
+     display: block;
+     height: 20px;
+     line-height: 20px;
      text-align: center;
 }
 
-/* Adjust specific arrow margins if needed */
-.arrow.server-to-cache,
-.arrow.cache-to-db {
-    /* Default vertical spacing is handled by parent .architecture gap */
-}
-
-/* Component Highlight */
+/* Component Highlight (Keep existing) */
 .component.highlight {
     border-color: #00796b;
-    box-shadow: 0 0 12px rgba(0, 121, 107, 0.8); /* More prominent glow */
-    /* transform: scale(1.03); /* Subtle scale effect */
+    box-shadow: 0 0 12px rgba(0, 121, 107, 0.8);
 }
 
-/* Failed Component State */
+/* Failed Component State (Keep existing) */
 .component.failed {
-    background-color: #ffcdd2 !important; /* Light red */
-    border-color: #e57373; /* Red */
-    color: #c62828; /* Dark red text */
+    background-color: #ffcdd2 !important;
+    border-color: #e57373;
+    color: #c62828;
     text-decoration: line-through;
-    opacity: 0.8; /* Slightly less opaque */
-    pointer-events: none; /* Make failed components not clickable */
+    opacity: 0.8;
+    pointer-events: none;
 }
 
 
-/* Actions (Send Request Button) */
-.actions {
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
+/* Removed old .actions styling */
+/* .actions { ... } */
+/* button#sendRequestBtn { ... } */
 
-button#sendRequestBtn {
-    padding: 12px 25px;
-    font-size: 16px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    transition: background-color 0.2s ease;
-}
 
-button#sendRequestBtn:hover {
-    background-color: #0056b3;
-}
-
-/* Panel Styling (Logs, Metrics, Tinker) */
-.logs,
-.metrics,
-.tinker-panel {
-    background: #ffffff; /* White background */
-    border: 1px solid #e0e0e0; /* Light grey border */
+/* Panel Styling (Logs, Metrics, Tinker, Traffic Controls) */
+.panel { /* Unified panel styling */
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
     padding: 15px;
-    margin: 0; /* Remove auto margins */
-    width: auto; /* Auto width within sidebar */
+    margin: 0;
+    width: auto;
     text-align: left;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
 }
 
-/* Sidebar Container */
+/* Sidebar Container - Reverted */
 .sidebar {
      grid-area: sidebar; /* Assign sidebar panels to sidebar area */
      display: flex;
@@ -164,20 +140,8 @@ button#sendRequestBtn:hover {
      margin-right: 20px; /* Add some margin */
 }
 
-/* Assign panels to the sidebar if they are direct children of body or a sidebar container */
-/* Assuming you wrap logs, metrics, tinker-panel in a new div with class 'sidebar' */
-/*
-<div class="sidebar">
-    <div class="tinker-panel">...</div>
-    <div class="logs">...</div>
-    <div class="metrics">...</div>
-</div>
-*/
-
-
-.logs h2,
-.metrics h2,
-.tinker-panel h2 {
+/* Panel Heading Styling */
+.panel h2 {
     margin-top: 0;
     color: #555;
     border-bottom: 1px solid #eee;
@@ -186,17 +150,81 @@ button#sendRequestBtn:hover {
     font-size: 1.1em;
 }
 
+/* Traffic Controls Panel Styling (NEW) */
+.traffic-controls {
+    /* Inherits .panel styling */
+    text-align: center; /* Center buttons within this panel */
+}
 
-#logContainer {
-    height: 200px; /* Slightly taller logs */
+.traffic-controls button {
+    margin: 5px;
+    padding: 10px 15px;
+    font-size: 1em;
+    background-color: #007bff; /* Primary color for action buttons */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    min-width: 120px; /* Give buttons a minimum width */
+}
+
+.traffic-controls button:hover {
+    background-color: #0056b3;
+}
+
+
+/* Tinker Panel specific styling */
+.tinker-panel .param-group { /* Grouping for label/input */
+     margin-bottom: 15px;
+     display: flex;
+     flex-direction: column;
+     align-items: flex-start;
+}
+
+.tinker-panel label { /* Styling for labels */
+     font-weight: 600;
+     color: #555;
+     margin-bottom: 5px;
+     font-size: 0.95em;
+}
+
+.tinker-panel input[type="number"] { /* Styling for number inputs */
+     padding: 8px;
+     border: 1px solid #ccc;
+     border-radius: 4px;
+     width: 100%; /* Make input fill width */
+     box-sizing: border-box; /* Include padding and border in width */
+     font-size: 0.9em;
+}
+
+.tinker-panel button { /* Styling for tinker buttons */
+    margin: 5px;
+    padding: 10px 15px;
+    font-size: 0.9em;
+    background-color: #f0f0f0; /* Subtle color for utility buttons */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.tinker-panel button:hover {
+    background-color: #e0e0e0;
+}
+
+
+/* Logs Styling */
+.logs #logContainer {
+    height: 200px;
     overflow-y: auto;
-    background: #f8f9fa; /* Very light grey */
+    background: #f8f9fa;
     padding: 10px;
-    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; /* Monospaced font */
-    font-size: 0.9em; /* Slightly smaller font */
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
     border-radius: 4px;
     border: 1px solid #e0e0e0;
-    white-space: pre-wrap; /* Wrap log lines */
+    white-space: pre-wrap;
     word-wrap: break-word;
 }
 
@@ -209,27 +237,11 @@ button#sendRequestBtn:hover {
 
 .metrics p span {
     font-weight: bold;
-    color: #007bff; /* Blue color for values */
-}
-
-/* Tinker Panel Button Styling */
-.tinker-panel button {
-    margin: 5px; /* Space around buttons */
-    padding: 10px 15px;
-    font-size: 0.9em;
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.tinker-panel button:hover {
-    background-color: #e0e0e0;
+    color: #007bff;
 }
 
 
-/* Animation Container */
+/* Animation Container (Keep existing) */
 #animationContainer {
     position: absolute;
     top: 0;
@@ -237,23 +249,21 @@ button#sendRequestBtn:hover {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 1; /* Ensure dots are above background but potentially below panels */
+    z-index: 1;
 }
 
 .request-dot {
     position: absolute;
-    width: 10px; /* Slightly smaller dots */
+    width: 10px;
     height: 10px;
-    background-color: #007bff; /* Match primary button color */
+    background-color: #007bff;
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(0, 123, 255, 0.6); /* Glow effect */
-    transform: translate(-50%, -50%); /* Center the dot */
-    z-index: 2; /* Ensure dots are above architecture components */
-    /* Transition is set by JS */
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+    transform: translate(-50%, -50%);
+    z-index: 2;
 }
 
-/* Footer (Optional Grid Area) */
-/*
+/* Footer (Optional) */
 footer {
     grid-area: footer;
     text-align: center;
@@ -261,9 +271,9 @@ footer {
     color: #777;
     font-size: 0.9em;
 }
-*/
 
-/* Responsive Adjustments (Basic) */
+
+/* Responsive Adjustments - Reverted */
 @media (max-width: 900px) {
     body {
         grid-template-areas:
@@ -288,4 +298,72 @@ footer {
      .arrow {
          font-size: 25px;
      }
+     /* Server group allows wrapping on small screens */
+     .server-group {
+          flex-wrap: wrap;
+          justify-content: center;
+     }
+      /* Tinker and traffic buttons styling for small screens */
+     .tinker-panel button, .traffic-controls button {
+          padding: 10px 15px;
+          font-size: 0.9em;
+          margin: 5px;
+     }
+}
+
+/* Modal Styles (Keep existing) */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 500px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#modalComponentName {
+    margin-top: 0;
+    color: #0056b3;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+#modalComponentDetails p {
+    margin: 5px 0;
+    color: #333;
 }

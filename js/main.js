@@ -1,38 +1,115 @@
 let requestCount = 0;
 let totalResponseTime = 0;
-let serverCounts = {}; // Use an object to track counts per server ID
+let serverCounts = {};
 
-// Adjusted STEP_DELAY and animation duration
-const STEP_DELAY = 600; // Time between steps (determines how quickly steps are processed)
-const ANIMATION_DURATION = STEP_DELAY * 0.8; // Make animation slightly shorter than step delay (e.g., 80% of delay)
-
-// --- Dynamic Server Management ---
-let activeServers = ['server1', 'server2']; // Initial active servers
-let serverStates = { // Keep track of server state (active, down, etc.)
+let activeServers = ['server1', 'server2'];
+let serverStates = {
     'server1': 'active',
     'server2': 'active'
 };
-let nextServerId = 3; // Counter for new servers
+let nextServerId = 3;
 
-// --- Cache State ---
 let cacheHits = 0;
 let cacheMisses = 0;
-let cacheHitRate = 0.7; // Simulate a 70% cache hit rate initially
-// --- End Cache State ---
+let cacheHitRate = 0.7;
+
+const DEFAULT_SERVER_PROCESSING_TIME = 200;
+const DEFAULT_DATABASE_LATENCY = 300;
+const DEFAULT_CACHE_PROCESSING_TIME = 50;
+const DEFAULT_LOAD_BALANCER_PROCESSING_TIME = 50;
+const DEFAULT_NETWORK_LATENCY = 50;
+
+let currentDbLatency = DEFAULT_DATABASE_LATENCY;
+let currentServerProcessingTime = DEFAULT_SERVER_PROCESSING_TIME;
+let currentCacheHitRate = cacheHitRate;
+
+let componentProcessors = {};
+
+function initializeComponentProcessors() {
+    componentProcessors = {
+        'client': { isProcessing: false, queue: [], processTime: 0, currentlyProcessingRequest: null },
+        'load-balancer': { isProcessing: false, queue: [], processTime: DEFAULT_LOAD_BALANCER_PROCESSING_TIME, currentlyProcessingRequest: null },
+        'cache': { isProcessing: false, queue: [], processTime: DEFAULT_CACHE_PROCESSING_TIME, currentlyProcessingRequest: null },
+        'database': { isProcessing: false, queue: [], processTime: DEFAULT_DATABASE_LATENCY, currentlyProcessingRequest: null },
+    };
+    activeServers.forEach(serverId => {
+        componentProcessors[serverId] = { isProcessing: false, queue: [], processTime: currentServerProcessingTime, currentlyProcessingRequest: null };
+    });
+}
+
+function processComponentQueue(componentName) {
+    const processor = componentProcessors[componentName];
+
+    if (componentName.startsWith('server') && serverStates[componentName] !== 'active') {
+         positionComponentDots(componentName); // Reposition remaining if any
+         return;
+    }
+
+    if (!processor || processor.isProcessing || processor.queue.length === 0) {
+        positionComponentDots(componentName); // Reposition if queue state changed but no processing starts
+        return;
+    }
+
+    const request = processor.queue.shift();
+    processor.isProcessing = true;
+    processor.currentlyProcessingRequest = request;
+
+    addLog(`[Request #${request.id}] Started processing at ${componentName}. Queue size: ${processor.queue.length}`);
+
+    positionComponentDots(componentName); // Reposition dots when processing starts
+
+    let actualProcessTime = processor.processTime;
+    if (componentName.startsWith('server')) {
+         actualProcessTime = currentServerProcessingTime;
+    } else if (componentName === 'database') {
+         actualProcessTime = currentDbLatency;
+    } else if (componentName === 'cache') {
+         actualProcessTime = DEFAULT_CACHE_PROCESSING_TIME;
+    } else if (componentName === 'load-balancer') {
+         actualProcessTime = DEFAULT_LOAD_BALANCER_PROCESSING_TIME;
+    }
+
+    setTimeout(() => {
+        processor.isProcessing = false;
+        processor.currentlyProcessingRequest = null;
+        addLog(`[Request #${request.id}] Finished processing at ${componentName}.`);
+
+        request.runNextStep();
+
+         setTimeout(() => {
+             positionComponentDots(componentName);
+             processComponentQueue(componentName);
+         }, DEFAULT_NETWORK_LATENCY / 2);
+
+    }, actualProcessTime);
+}
 
 
 function addServer() {
     const serverGroup = document.querySelector('.server-group');
-    const newServerId = `server${nextServerId++}`; // Generate unique ID
+    const newServerId = `server${nextServerId++}`;
     const newServerDiv = document.createElement('div');
-    newServerDiv.classList.add('component', newServerId); // Add component and unique class
-    newServerDiv.textContent = `Server ${nextServerId - 1}`; // Display name
-    newServerDiv.style.backgroundColor = getRandomColor(); // Optional: unique color
-    serverGroup.appendChild(newServerDiv); // Add to DOM
+    newServerDiv.classList.add('component', newServerId);
+    newServerDiv.textContent = `Server ${nextServerId - 1}`;
+    newServerDiv.style.backgroundColor = getRandomColor();
 
-    activeServers.push(newServerId); // Add to active servers list
-    serverStates[newServerId] = 'active'; // Set initial state
-    serverCounts[newServerId] = 0; // Initialize count for new server
+    newServerDiv.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (!newServerDiv.classList.contains('failed')) {
+            showComponentDetails(newServerId);
+        } else {
+            addLog(`[System] Cannot show details for failed component ${newServerId}.`);
+        }
+    });
+
+    serverGroup.appendChild(newServerDiv);
+
+    activeServers.push(newServerId);
+    serverStates[newServerId] = 'active';
+    serverCounts[newServerId] = 0;
+
+    componentProcessors[newServerId] = { isProcessing: false, queue: [], processTime: currentServerProcessingTime, currentlyProcessingRequest: null };
+
     addLog(`[System] Added ${newServerId}`);
     console.log("Active Servers:", activeServers);
     console.log("Server States:", serverStates);
@@ -44,28 +121,51 @@ function removeServer() {
         return;
     }
 
-    // Find the last *active* server to remove
     let serverToRemoveId = null;
-    // Iterate backwards to find the most recently added active server
     for (let i = activeServers.length - 1; i >= 0; i--) {
         const serverId = activeServers[i];
         if (serverStates[serverId] === 'active') {
             serverToRemoveId = serverId;
-            activeServers.splice(i, 1); // Remove from active list
-            break; // Found and removed one, exit loop
+            activeServers.splice(i, 1);
+            break;
         }
     }
 
     if (serverToRemoveId) {
-         const serverToRemoveDiv = document.querySelector(`.${serverToRemoveId}`);
-         if (serverToRemoveDiv) {
-             serverToRemoveDiv.remove(); // Remove from DOM
-             addLog(`[System] Removed ${serverToRemoveId}`);
-             delete serverStates[serverToRemoveId]; // Remove from states
-             delete serverCounts[serverToRemoveId]; // Remove from counts
-             console.log("Active Servers:", activeServers);
-             console.log("Server States:", serverStates);
-         }
+        const processor = componentProcessors[serverToRemoveId];
+        if (processor) {
+             if(processor.currentlyProcessingRequest) {
+                 addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverToRemoveId} removal.`);
+                 processor.currentlyProcessingRequest.failed = true;
+                 clearDot(processor.currentlyProcessingRequest.id);
+                 processor.currentlyProcessingRequest.finishRequest(true);
+             }
+             if (processor.queue.length > 0) {
+                  addLog(`[System] ${processor.queue.length} requests failed in ${serverToRemoveId}'s queue.`);
+                   processor.queue.forEach(req => {
+                       req.failed = true;
+                       clearDot(req.id);
+                       req.finishRequest(true);
+                   });
+             }
+             processor.isProcessing = false;
+             processor.queue = [];
+             processor.currentlyProcessingRequest = null;
+             delete componentProcessors[serverToRemoveId]; // Remove processor state
+        }
+
+
+        const serverToRemoveDiv = document.querySelector(`.${serverToRemoveId}`);
+        if (serverToRemoveDiv) {
+            serverToRemoveDiv.remove();
+            addLog(`[System] Removed ${serverToRemoveId}`);
+            delete serverStates[serverToRemoveId];
+            delete serverCounts[serverToRemoveId];
+
+
+            console.log("Active Servers:", activeServers);
+            console.log("Server States:", serverStates);
+        }
     } else {
         addLog("[System] No active servers available to remove.");
     }
@@ -73,8 +173,8 @@ function removeServer() {
 
 function killServer(serverId) {
     if (serverStates[serverId] === 'active') {
-        serverStates[serverId] = 'down'; // Mark state as down
-        // Remove from activeServers list so Load Balancer doesn't pick it
+        serverStates[serverId] = 'down';
+
         const activeIndex = activeServers.indexOf(serverId);
         if (activeIndex > -1) {
             activeServers.splice(activeIndex, 1);
@@ -82,54 +182,77 @@ function killServer(serverId) {
 
         const serverDiv = document.querySelector(`.${serverId}`);
         if (serverDiv) {
-            serverDiv.classList.add('failed'); // Add the failed class for styling
-            serverDiv.textContent = `Server ${serverId.replace('server', '')} (DOWN)`; // Update text
+            serverDiv.classList.add('failed');
+            serverDiv.textContent = `Server ${serverId.replace('server', '')} (DOWN)`;
         }
         addLog(`[System] ${serverId} failed!`);
+
+        const processor = componentProcessors[serverId];
+        if (processor) {
+             if(processor.currentlyProcessingRequest) {
+                 addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverId} failure.`);
+                 processor.currentlyProcessingRequest.failed = true;
+                 clearDot(processor.currentlyProcessingRequest.id);
+                 processor.currentlyProcessingRequest.finishRequest(true);
+             }
+             if (processor.queue.length > 0) {
+                  addLog(`[System] ${processor.queue.length} requests failed in ${serverId}'s queue.`);
+                   processor.queue.forEach(req => {
+                       req.failed = true;
+                       clearDot(req.id);
+                       req.finishRequest(true);
+                   });
+             }
+             processor.isProcessing = false;
+             processor.queue = [];
+             processor.currentlyProcessingRequest = null;
+        }
+
         console.log("Active Servers after failure:", activeServers);
         console.log("Server States:", serverStates);
 
-        // Optional: Trigger a check to see if any in-flight requests were targeting this server
-        // This is more complex and might involve iterating through active Request instances.
-        // The runNextStep logic will handle requests *attempting* to go there.
 
     } else {
-         addLog(`[System] ${serverId} is already down or does not exist.`);
+        addLog(`[System] ${serverId} is already down or does not exist.`);
     }
 }
 
 function reviveServer(serverId) {
     if (serverStates[serverId] === 'down') {
-       serverStates[serverId] = 'active'; // Mark state as active
+        serverStates[serverId] = 'active';
 
-       // Add back to activeServers list (maintain some order if desired, e.g., sort)
-       activeServers.push(serverId);
-       // Sort activeServers array if you want them in order 'server1', 'server2', etc.
-       activeServers.sort((a, b) => {
-           const numA = parseInt(a.replace('server', ''), 10);
-           const numB = parseInt(b.replace('server', ''), 10);
-           return numA - numB;
-       });
+        activeServers.push(serverId);
+        activeServers.sort((a, b) => {
+            const numA = parseInt(a.replace('server', ''), 10);
+            const numB = parseInt(b.replace('server', ''), 10);
+            return numA - numB;
+        });
 
 
-       const serverDiv = document.querySelector(`.${serverId}`);
-       if (serverDiv) {
-           serverDiv.classList.remove('failed'); // Remove the failed class
-           serverDiv.textContent = `Server ${serverId.replace('server', '')}`; // Restore text
-            // Re-assign a color? Or keep the original? Let's re-assign for now.
+        const serverDiv = document.querySelector(`.${serverId}`);
+        if (serverDiv) {
+            serverDiv.classList.remove('failed');
+            serverDiv.textContent = `Server ${serverId.replace('server', '')}`;
             serverDiv.style.backgroundColor = getRandomColor();
-       }
-       addLog(`[System] ${serverId} revived!`);
-       console.log("Active Servers after revival:", activeServers);
-       console.log("Server States:", serverStates);
+        }
+        addLog(`[System] ${serverId} revived!`);
 
-   } else {
+         if (!componentProcessors[serverId]) {
+             componentProcessors[serverId] = { isProcessing: false, queue: [], processTime: currentServerProcessingTime, currentlyProcessingRequest: null };
+         } else {
+             componentProcessors[serverId].isProcessing = false;
+             componentProcessors[serverId].queue = [];
+             componentProcessors[serverId].processTime = currentServerProcessingTime;
+             componentProcessors[serverId].currentlyProcessingRequest = null;
+         }
+
+        console.log("Active Servers after revival:", activeServers);
+        console.log("Server States:", serverStates);
+
+    } else {
         addLog(`[System] ${serverId} is already active or does not exist.`);
-   }
+    }
 }
-
-
-// --- End Dynamic Server Management ---
 
 
 function addLog(message) {
@@ -151,20 +274,21 @@ function highlightComponent(componentClass) {
 function updateMetrics(responseTime) {
     requestCount++;
     totalResponseTime += responseTime;
-    const avgResponseTime = Math.round(totalResponseTime / requestCount);
 
-    document.getElementById('requestCount').textContent = requestCount;
+    let successfulRequestCount = parseInt(document.getElementById('requestCount').textContent) + 1;
+
+    const requestCountSpan = document.getElementById('requestCount');
+    requestCountSpan.textContent = successfulRequestCount;
+
+    const avgResponseTime = successfulRequestCount > 0 ? Math.round(totalResponseTime / successfulRequestCount) : 0;
+
     document.getElementById('avgResponseTime').textContent = avgResponseTime;
 
-    // Update Cache Metrics
     document.getElementById('cacheHits').textContent = cacheHits;
     document.getElementById('cacheMisses').textContent = cacheMisses;
     const totalCacheChecks = cacheHits + cacheMisses;
     const currentHitRate = totalCacheChecks > 0 ? ((cacheHits / totalCacheChecks) * 100).toFixed(1) : 0;
     document.getElementById('cacheHitRate').textContent = `${currentHitRate}%`;
-
-    // Optional: Update per-server counts display if you add it
-    // console.log("Server Counts:", serverCounts);
 }
 
 class Request {
@@ -174,32 +298,27 @@ class Request {
         this.chosenServer = null;
         this.failed = false;
         this.hitCache = false;
-        this.finished = false; // Flag to prevent multiple finish calls
+        this.finished = false;
 
         if (activeServers.length === 0) {
-             addLog(`[Request #${this.id}] Failed: No active servers available.`);
-             this.finishRequest(true);
-             return;
-         }
+            addLog(`[Request #${this.id}] Failed: No active servers available.`);
+            this.finishRequest(true);
+            return;
+        }
 
         this.currentStep = 0;
-        // Initial steps: Client -> LB -> Final Client Return
-        // The in-between steps will be added at the LB stage
         this.steps = [
-            { component: 'client', message: 'Request sent from Client to Load Balancer.' },
+            { component: 'client', message: 'Request sent from Client.' },
             { component: 'load-balancer', message: 'Load Balancer routing request...' },
-            { component: 'client', message: 'Response returned to Client.' } // Final return step
+            { component: 'client', message: 'Response returned to Client.' }
         ];
-
 
         createRequestDot(this.id);
 
-        // Start the request process
         this.runNextStep();
     }
 
     runNextStep() {
-        // Stop if the request has failed or all steps are done
         if (this.failed || this.currentStep >= this.steps.length) {
             this.finishRequest(this.failed);
             return;
@@ -208,9 +327,6 @@ class Request {
         const currentStepData = this.steps[this.currentStep];
         let { component, message } = currentStepData;
 
-        // --- Core Step Logic ---
-
-        // Remove highlight from previous component if any
         if (this.currentComponent) {
             const prevComponent = document.querySelector(`.${this.currentComponent}`);
             if (prevComponent) {
@@ -218,163 +334,138 @@ class Request {
             }
         }
 
-        // Check if the *current* component for this step is valid/active (especially for servers)
-         if (component.startsWith('server') && (serverStates[component] !== 'active')) {
-             addLog(`[Request #${this.id}] Failed: Target server ${component} is down.`);
-             this.failed = true;
-             this.finishRequest(true);
-             return; // Stop processing steps
-         }
+        if (component.startsWith('server') && serverStates[component] !== 'active') {
+            addLog(`[Request #${this.id}] Failed: Target server ${component} is down.`);
+            this.failed = true;
+            clearDot(this.id);
+            this.finishRequest(true);
+            return;
+        }
 
-        // Highlight the current component
         highlightComponent(component);
-        this.currentComponent = component; // Update the tracker
+        this.currentComponent = component;
 
-        // Log the step
-        // Note: Log happens *before* specific step actions might update the message
         addLog(`[Request #${this.id}] ${message}`);
 
-        // Move the dot to the current component's location (This animation will take ANIMATION_DURATION)
-        moveRequestDot(this.id, component);
+        const networkDelayToComponent = DEFAULT_NETWORK_LATENCY;
 
+        const isFinalClientStep = this.currentStep === this.steps.length - 1 && component === 'client';
 
-        // --- Handle Specific Step Actions ---
+        if (isFinalClientStep) {
+             moveRequestDot(this.id, component, DEFAULT_NETWORK_LATENCY);
+             setTimeout(() => {
+                  this.finishRequest(this.failed);
+                  clearDot(this.id);
+             }, DEFAULT_NETWORK_LATENCY);
+             return;
+         }
 
-        // Load Balancer Step: Choose a server dynamically and build intermediate steps
-        if (component === 'load-balancer' && this.chosenServer === null) {
-            if (activeServers.length === 0) {
-                 addLog(`[Request #${this.id}] Failed: Load Balancer found no active servers.`);
+        moveRequestDot(this.id, component, networkDelayToComponent);
+
+        setTimeout(() => {
+            const componentProcessor = componentProcessors[component];
+
+            if (!componentProcessor) {
+                 console.error(`Processor not found for component: ${component}`);
                  this.failed = true;
                  clearDot(this.id);
                  this.finishRequest(true);
                  return;
             }
-            const randomIndex = Math.floor(Math.random() * activeServers.length);
-            this.chosenServer = activeServers[randomIndex];
 
-            // Define the intermediate steps *between* LB and the final Client return
-            // Ensure these component names match your HTML class names
-            const intermediateSteps = [
-                 { component: this.chosenServer, message: `Request received by ${this.chosenServer}.` },
-                 { component: 'cache', message: 'Server checking Cache.' },
-                 { component: 'database', message: 'Cache missed, querying Database.' }, // DB step - will be skipped on hit
-                 { component: this.chosenServer, message: `Database returned data from Database.` }, // Server return from DB - will be skipped on hit
-            ];
+            if (component === 'load-balancer' && this.chosenServer === null) {
+                if (activeServers.length === 0) {
+                    addLog(`[Request #${this.id}] Failed: Load Balancer found no active servers.`);
+                    this.failed = true;
+                    clearDot(this.id);
+                    this.finishRequest(true);
+                    return;
+                }
+                const randomIndex = Math.floor(Math.random() * activeServers.length);
+                this.chosenServer = activeServers[randomIndex];
 
-            // Insert intermediate steps after the current Load Balancer step (this.currentStep)
-            // The final client step is at index 2 initially, so insert before it.
-            const finalClientStepIndex = this.steps.length - 1; // Index of the last step (Client return)
-            this.steps.splice(finalClientStepIndex, 0, ...intermediateSteps);
+                const intermediateSteps = [
+                    { component: this.chosenServer, message: `Request received by ${this.chosenServer}.` },
+                    { component: 'cache', message: `[${this.chosenServer}] checking Cache.` },
+                    { component: 'database', message: 'Cache MISS, querying Database.' },
+                    { component: this.chosenServer, message: `Database returned data to ${this.chosenServer}.` },
+                ];
 
-             // Update the message for the load balancer step to indicate the chosen server
-             currentStepData.message = `Load Balancer routed to ${this.chosenServer}`;
-        }
-        // Cache Step: Simulate hit or miss and skip steps if hit
-        else if (component === 'cache') {
-             this.hitCache = Math.random() < cacheHitRate;
+                const finalClientStepIndex = this.steps.length - 1;
+                this.steps.splice(finalClientStepIndex, 0, ...intermediateSteps);
 
-             if (this.hitCache) {
-                 cacheHits++;
-                 // Update the message for the *current* cache step
-                 currentStepData.message = 'Cache HIT!';
+                currentStepData.message = `Load Balancer routed to ${this.chosenServer}`;
+            }
+            else if (component === 'cache') {
+                 this.hitCache = Math.random() < cacheHitRate;
 
-                 // Find the 'database' step which should immediately follow the cache step IF it wasn't hit
-                 const dbStepIndex = this.steps.findIndex((step, index) => index > this.currentStep && step.component === 'database');
+                if (this.hitCache) {
+                    cacheHits++;
+                    currentStepData.message = 'Cache HIT!';
 
-                 if (dbStepIndex !== -1) {
-                      // Find the server return from DB step, which should immediately follow the database step
-                      const serverReturnDbIndex = this.steps.findIndex((step, index) => index > dbStepIndex && step.component === this.chosenServer && step.message.includes('Database')); // Look for message about DB
+                    const dbStepIndex = this.steps.findIndex((step, index) => index > this.currentStep && step.component === 'database');
 
-                     if (serverReturnDbIndex !== -1) {
-                         // Remove the 'database' step and the 'server return from Database' step
-                          this.steps.splice(dbStepIndex, serverReturnDbIndex - dbStepIndex + 1);
-                     } else {
-                         // If server return from DB step isn't found, just remove the DB step
-                          this.steps.splice(dbStepIndex, 1);
-                     }
+                    if (dbStepIndex !== -1) {
+                        const serverReturnDbIndex = this.steps.findIndex((step, index) => index > dbStepIndex && step.component === this.chosenServer && step.message.includes('Database returned data'));
 
-                      // Insert a new step for Server returning from Cache right after the current Cache step
-                      const serverReturnCacheStep = { component: this.chosenServer, message: `${this.chosenServer} returning data from Cache.` };
-                       this.steps.splice(this.currentStep + 1, 0, serverReturnCacheStep);
-                 }
+                        if (serverReturnDbIndex !== -1) {
+                            this.steps.splice(dbStepIndex, serverReturnDbIndex - dbStepIndex + 1);
+                        } else {
+                            this.steps.splice(dbStepIndex, 1);
+                        }
 
+                        const serverReturnCacheStep = {
+                            component: this.chosenServer,
+                            message: `${this.chosenServer} returning data from Cache.`,
+                        };
+                        this.steps.splice(this.currentStep + 1, 0, serverReturnCacheStep);
+                    }
 
-             } else {
-                 cacheMisses++;
-                 // Update the message for the *current* cache step
-                 currentStepData.message = 'Cache MISS. Going to Database.';
-                 // Flow continues naturally to the database step as defined
-             }
-             // Note: The initial log message for the cache step happened before this logic.
-             // The message update here fixes the text property in the steps array for future reference.
-             // If you want the log to reflect HIT/MISS immediately for the cache step,
-             // you might need to re-log after this block or structure slightly differently.
-             // The visual flow/timing is what matters more for the simulation effect.
-        }
-         // Server Return Step (Distinguish between from DB and from Cache based on the message set)
-         // No extra logic needed here beyond the core step handling.
+                } else {
+                    cacheMisses++;
+                    currentStepData.message = 'Cache MISS. Going to Database.';
+                }
+            }
 
+            this.currentStep++;
 
-        // --- End Handle Specific Step Actions ---
+            componentProcessor.queue.push(this); // Add the request instance to the queue
 
-        // --- Schedule the NEXT step ---
-        this.currentStep++; // Move to the next step index
+            positionComponentDots(component); // Reposition dots when a new one arrives
 
-        // Schedule the next runAfterAnimation completes.
-        // The timeout duration should match the STEP_DELAY.
-        // The dot animation takes ANIMATION_DURATION, which is less than STEP_DELAY.
-        // This means the dot arrives before the next step's logic begins.
-         if (this.currentStep < this.steps.length) {
-             setTimeout(() => {
-                 this.runNextStep();
-             }, STEP_DELAY);
-         } else {
-             // If this was the last step (the final client return), call finishRequest after the timeout
-             // The dot is moving to the final client step, wait for that animation
-             setTimeout(() => {
-                  this.finishRequest(this.failed);
-             }, STEP_DELAY); // Wait for the dot to reach the final destination (Client)
-         }
+            if (!componentProcessor.isProcessing) {
+                 processComponentQueue(component);
+            }
+
+        }, networkDelayToComponent);
     }
 
 
-     finishRequest(failed = false) {
-        // Only finish if the request hasn't already been marked as finished
-         if (this.finished) {
-             return;
-         }
-         this.finished = true;
+    finishRequest(failed = false) {
+        if (this.finished) {
+            return;
+        }
+        this.finished = true;
 
         const endTime = Date.now();
         const responseTime = endTime - this.startTime;
 
         if (!failed) {
             updateMetrics(responseTime);
-            // Increment count for the server that handled the request (the chosen server)
             if (this.chosenServer && serverCounts[this.chosenServer] !== undefined) {
-                 serverCounts[this.chosenServer]++;
+                serverCounts[this.chosenServer]++;
             }
-             console.log(`[Request #${this.id}] Completed in ${responseTime}ms by ${this.chosenServer || 'N/A'} (Cache ${this.hitCache ? 'HIT' : 'MISS'})`);
+            console.log(`[Request #${this.id}] Completed in ${responseTime}ms by ${this.chosenServer || 'N/A'} (Cache ${this.hitCache ? 'HIT' : 'MISS'})`);
         } else {
-             console.log(`[Request #${this.id}] Failed after ${responseTime}ms`);
+            console.log(`[Request #${this.id}] Failed after ${responseTime}ms`);
         }
 
-        // Clear last highlight
         if (this.currentComponent) {
             const prevComponent = document.querySelector(`.${this.currentComponent}`);
             if (prevComponent) {
                 prevComponent.classList.remove('highlight');
             }
         }
-
-        // Wait a little longer before removing the dot to make sure the final animation is visible
-        // This timeout should ideally be related to ANIMATION_DURATION if finishRequest was called immediately after the last move.
-        // Since finishRequest is called after STEP_DELAY after the last step *starts*,
-        // waiting for the remainder of the animation might be needed.
-        // Let's just use a small fixed delay for cleanup.
-        setTimeout(() => {
-             clearDot(this.id);
-        }, 50); // Small delay to ensure dot is visible at client before removal
     }
 }
 
@@ -384,31 +475,56 @@ document.getElementById('sendRequestBtn').addEventListener('click', () => {
     new Request(nextRequestId++);
 });
 
-// --- Event Listeners for Tinker Buttons (Keep them as is) ---
 document.getElementById('addServerBtn').addEventListener('click', addServer);
 document.getElementById('removeServerBtn').addEventListener('click', removeServer);
 document.getElementById('killRandomServerBtn').addEventListener('click', () => {
-    const currentlyActive = Object.keys(serverStates).filter(serverId => serverStates[serverId] === 'active'); // Use serverStates
+    const currentlyActive = Object.keys(serverStates).filter(serverId => serverStates[serverId] === 'active');
     if (currentlyActive.length > 0) {
-         const randomServerId = currentlyActive[Math.floor(Math.random() * currentlyActive.length)];
-         killServer(randomServerId);
+        const randomServerId = currentlyActive[Math.floor(Math.random() * currentlyActive.length)];
+        killServer(randomServerId);
     } else {
-         addLog("[System] No active servers to kill.");
+        addLog("[System] No active servers to kill.");
     }
 });
 
 document.getElementById('reviveRandomServerBtn').addEventListener('click', () => {
-     const currentlyDown = Object.keys(serverStates).filter(serverId => serverStates[serverId] === 'down');
-     if (currentlyDown.length > 0) {
-          const randomServerId = currentlyDown[Math.floor(Math.random() * currentlyDown.length)];
-          reviveServer(randomServerId);
-     } else {
-          addLog("[System] No servers are currently down.");
-     }
+    const currentlyDown = Object.keys(serverStates).filter(serverId => serverStates[serverId] === 'down');
+    if (currentlyDown.length > 0) {
+        const randomServerId = currentlyDown[Math.floor(Math.random() * currentlyDown.length)];
+        reviveServer(randomServerId);
+    } else {
+        addLog("[System] No servers are currently down.");
+    }
 });
-// --- End Event Listeners ---
 
-// --- DOT ANIMATION FUNCTIONS ---
+document.getElementById('dbLatencyInput').addEventListener('change', (event) => {
+    currentDbLatency = parseInt(event.target.value);
+    if(componentProcessors['database']) {
+        componentProcessors['database'].processTime = currentDbLatency;
+    }
+    addLog(`[System] Database latency set to ${currentDbLatency}ms.`);
+});
+
+document.getElementById('serverProcessingInput').addEventListener('change', (event) => {
+    currentServerProcessingTime = parseInt(event.target.value);
+    Object.keys(componentProcessors).forEach(compName => {
+        if (compName.startsWith('server')) {
+            componentProcessors[compName].processTime = currentServerProcessingTime;
+        }
+    });
+    addLog(`[System] Server processing time set to ${currentServerProcessingTime}ms.`);
+});
+
+document.getElementById('cacheHitRateInput').addEventListener('change', (event) => {
+    currentCacheHitRate = parseInt(event.target.value) / 100;
+    cacheHitRate = currentCacheHitRate;
+    addLog(`[System] Cache hit rate set to ${(currentCacheHitRate * 100).toFixed(0)}%.`);
+});
+
+document.getElementById('sendBatchBtn').addEventListener('click', () => {
+    sendMultipleRequests(10);
+});
+
 function createRequestDot(id) {
     const dot = document.createElement('div');
     dot.classList.add('request-dot');
@@ -421,13 +537,11 @@ function createRequestDot(id) {
         const rect = clientComponent.getBoundingClientRect();
         const containerRect = document.getElementById('animationContainer').getBoundingClientRect();
 
-        // Set position without transition initially
         dot.style.transition = 'none';
         dot.style.left = `${rect.left - containerRect.left + rect.width / 2}px`;
         dot.style.top = `${rect.top - containerRect.top + rect.height / 2}px`;
 
-         // Force a reflow to ensure position is applied before any later transition
-         void dot.offsetWidth;
+        void dot.offsetWidth; // Force reflow
 
     } else {
         console.error("Client component not found! Cannot place request dot.");
@@ -435,32 +549,31 @@ function createRequestDot(id) {
     }
 }
 
-function moveRequestDot(id, componentName) {
-    const dot = document.getElementById(`request-dot-${id}`);
-    const component = document.querySelector(`.${componentName}`);
+// Modified moveRequestDot to accept duration and target position
+function moveRequestDot(id, componentName, duration) {
+     const dot = document.getElementById(`request-dot-${id}`);
+     const component = document.querySelector(`.${componentName}`);
 
-    // Check component state before moving
-    if (!component || (componentName.startsWith('server') && serverStates[componentName] !== 'active')) {
-        console.warn(`Attempted to move dot ${id} to unavailable component .${componentName}. Removing dot.`);
-        clearDot(id);
-        return;
-    }
-
-    if (dot && component) {
-        const rect = component.getBoundingClientRect();
-        const containerRect = document.getElementById('animationContainer').getBoundingClientRect();
-
-        // Set transition duration based on ANIMATION_DURATION BEFORE setting the new position
-        dot.style.transition = `all ${ANIMATION_DURATION / 1000}s linear`; // Use ANIMATION_DURATION
-
-        dot.style.left = `${rect.left - containerRect.left + rect.width / 2}px`;
-        dot.style.top = `${rect.top - containerRect.top + rect.height / 2}px`;
-
-    } else if (dot) {
-         console.warn(`Component .${componentName} not found for dot ${id}. Removing dot.`);
+     if (!dot || !component) {
+         console.warn(`Attempted to move dot ${id} to component .${componentName}, but one was not found. Removing dot.`);
          clearDot(id);
-    }
+         return;
+     }
+
+     const rect = component.getBoundingClientRect();
+     const containerRect = document.getElementById('animationContainer').getBoundingClientRect();
+
+     // Target is the center of the component
+     const targetX = rect.left - containerRect.left + rect.width / 2;
+     const targetY = rect.top - containerRect.top + rect.height / 2;
+
+
+     dot.style.transition = `all ${duration / 1000}s linear`;
+
+     dot.style.left = `${targetX}px`;
+     dot.style.top = `${targetY}px`;
 }
+
 
 function clearDot(id) {
     const dot = document.getElementById(`request-dot-${id}`);
@@ -468,7 +581,54 @@ function clearDot(id) {
         dot.remove();
     }
 }
-// --- END DOT ANIMATION FUNCTIONS ---
+
+// --- NEW: Function to position dots for a component's queue ---
+function positionComponentDots(componentName) {
+    const processor = componentProcessors[componentName];
+    if (!processor) return;
+
+    const componentDiv = document.querySelector(`.${componentName}`);
+    if (!componentDiv) {
+        console.error(`Component div not found for ${componentName}`);
+        return;
+    }
+
+    const componentRect = componentDiv.getBoundingClientRect();
+    const containerRect = document.getElementById('animationContainer').getBoundingClientRect();
+
+    // Base position for the queue visual - below the component
+    const baseX = componentRect.left - containerRect.left + componentRect.width / 2;
+    const baseY = componentRect.top - containerRect.top + componentRect.height + 10; // 10px below component
+
+    const dotSize = 10; // Defined in CSS
+    const spacing = 5; // Space between dots
+
+    // Collect all requests associated with this component (processing + queued)
+    const requestsToPosition = [];
+    if (processor.currentlyProcessingRequest) {
+        requestsToPosition.push(processor.currentlyProcessingRequest);
+    }
+    requestsToPosition.push(...processor.queue);
+
+    const totalDots = requestsToPosition.length;
+    const totalWidth = (totalDots * dotSize) + Math.max(0, (totalDots - 1) * spacing); // Ensure spacing is 0 for 1 dot
+    let startX = baseX - totalWidth / 2; // Center the group horizontally
+
+    requestsToPosition.forEach((request, index) => {
+        const dot = document.getElementById(`request-dot-${request.id}`);
+        if (dot) {
+            const targetX = startX + index * (dotSize + spacing);
+            const targetY = baseY; // Keep dots on the same vertical line below the component
+
+            // Apply transition for smooth movement to the queue position
+            // Use a short duration so dots snap into queue formation quickly
+             dot.style.transition = `all 0.2s ease-out`; // Short transition for queue rearrangement
+
+            dot.style.left = `${targetX}px`;
+            dot.style.top = `${targetY}px`;
+        }
+    });
+}
 
 
 function getRandomColor() {
@@ -476,17 +636,127 @@ function getRandomColor() {
     return colors[Math.floor(Math.random() * colors.length)];
 }
 
-// Initial setup: Initialize server counts and states for existing servers
+// Initial setup: Initialize server counts, states, and processors for existing servers
+initializeComponentProcessors(); // Call this first
+
 activeServers.forEach(server => {
     serverCounts[server] = 0;
-    serverStates[server] = 'active'; // Ensure initial state is active
+    serverStates[server] = 'active';
     const serverDiv = document.querySelector(`.${server}`);
-    if(serverDiv) {
-        serverDiv.style.backgroundColor = getRandomColor(); // Give initial servers colors too
+    if (serverDiv) {
+        serverDiv.style.backgroundColor = getRandomColor();
+         serverDiv.addEventListener('click', (event) => {
+             event.stopPropagation();
+             if (!serverDiv.classList.contains('failed')) {
+                 showComponentDetails(server);
+             } else {
+                 addLog(`[System] Cannot show details for failed component ${server}.`);
+             }
+         });
     }
 });
 
-// Initialize cache metrics display
+document.querySelectorAll('.component:not(.server1):not(.server2)').forEach(componentDiv => {
+     const componentClass = Array.from(componentDiv.classList).find(cls =>
+         cls === 'client' || cls === 'load-balancer' || cls === 'cache' || cls === 'database'
+     );
+     if (componentClass) {
+         componentDiv.addEventListener('click', (event) => {
+              event.stopPropagation();
+              if (!componentDiv.classList.contains('failed')) {
+                  showComponentDetails(componentClass);
+              } else {
+                   addLog(`[System] Cannot show details for failed component ${componentClass}.`);
+              }
+         });
+     }
+});
+
+
 document.getElementById('cacheHits').textContent = cacheHits;
 document.getElementById('cacheMisses').textContent = cacheMisses;
-document.getElementById('cacheHitRate').textContent = `${(cacheHitRate * 100).toFixed(1)}%`; // Display initial hit rate percentage
+document.getElementById('cacheHitRate').textContent = `${(cacheHitRate * 100).toFixed(1)}%`;
+
+function sendMultipleRequests(count, interval = 100) {
+    let sentCount = 0;
+    const intervalId = setInterval(() => {
+        if (sentCount < count) {
+            new Request(nextRequestId++);
+            sentCount++;
+        } else {
+            clearInterval(intervalId);
+        }
+    }, interval);
+}
+
+function showComponentDetails(componentName) {
+    const modal = document.getElementById('componentDetailModal');
+    const modalName = document.getElementById('modalComponentName');
+    const modalDetails = document.getElementById('modalComponentDetails');
+
+    modalName.textContent = componentName.replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') + " Details";
+
+    let detailsHtml = '';
+    const processor = componentProcessors[componentName];
+
+    if (processor) {
+         detailsHtml += `<p><strong>Current Queue:</strong> ${processor.queue.length}</p>`;
+         detailsHtml += `<p><strong>Processing Now:</strong> ${processor.isProcessing ? 'Yes' : 'No'}</p>`;
+         if (processor.currentlyProcessingRequest) {
+              detailsHtml += `<p><strong>Processing Request ID:</strong> ${processor.currentlyProcessingRequest.id}</p>`;
+         }
+         detailsHtml += `<hr>`;
+    }
+
+
+    if (componentName.startsWith('server')) {
+        const serverId = componentName;
+        const state = serverStates[serverId] || 'unknown';
+        const requestsHandled = serverCounts[serverId] !== undefined ? serverCounts[serverId] : 0;
+        detailsHtml += `<p><strong>ID:</strong> ${serverId}</p>`;
+        detailsHtml += `<p><strong>State:</strong> <span style="color: ${state === 'active' ? 'green' : 'red'};">${state.toUpperCase()}</span></p>`;
+        detailsHtml += `<p><strong>Requests Handled:</strong> ${requestsHandled}</p>`;
+        detailsHtml += `<p><strong>Simulated Process Time:</strong> ${currentServerProcessingTime}ms</p>`;
+
+
+    } else if (componentName === 'cache') {
+        detailsHtml += `<p><strong>Hits:</strong> ${cacheHits}</p>`;
+        detailsHtml += `<p><strong>Misses:</strong> ${cacheMisses}</p>`;
+        const total = cacheHits + cacheMisses;
+        const hitRate = total > 0 ? ((cacheHits / total) * 100).toFixed(1) : 0;
+        detailsHtml += `<p><strong>Hit Rate:</strong> ${hitRate}%</p>`;
+        detailsHtml += `<p><strong>Configured Hit Rate:</strong> ${(currentCacheHitRate * 100).toFixed(0)}%</p>`;
+
+
+    } else if (componentName === 'database') {
+        detailsHtml += `<p><strong>Simulated Latency:</strong> ${currentDbLatency}ms</p>`;
+
+
+    } else if (componentName === 'load-balancer') {
+        detailsHtml += `<p><strong>Algorithm:</strong> Random (Basic)</p>`;
+        detailsHtml += `<p><strong>Active Servers:</strong> ${activeServers.length}</p>`;
+
+
+    } else if (componentName === 'client') {
+        detailsHtml += `<p>This represents the user/browser.</p>`;
+        detailsHtml += `<p>It initiates and receives requests.</p>`;
+    } else {
+        detailsHtml += `<p>No detailed information available for this component yet.</p>`;
+    }
+
+    modalDetails.innerHTML = detailsHtml;
+    modal.style.display = "block";
+}
+
+const modal = document.getElementById('componentDetailModal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+
+closeModalBtn.addEventListener('click', () => {
+    modal.style.display = "none";
+});
+
+window.addEventListener('click', (event) => {
+    if (event.target === modal) {
+        modal.style.display = "none";
+    }
+});
