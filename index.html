@@ -11,7 +11,8 @@
 <body>
     <h1>SystemCraft</h1>
 
-    <div class="system-layout"> <div class="architecture">
+    <div class="system-layout">
+        <div class="architecture">
             <div class="component client">Client</div>
             <div class="arrow">↓</div>
 
@@ -29,14 +30,25 @@
             <div class="component database">Database</div>
         </div>
 
+    </div>
+
+    <div class="sidebar">
+        <div class="traffic-controls panel">
+            <h2>Traffic Simulation</h2>
+            <button id="sendRequestBtn">Send Single Request</button>
+            <button id="sendBatchBtn">Send 10 Requests</button>
         </div>
 
-    <div class="sidebar"> <div class="traffic-controls panel"> <h2>Traffic Simulation</h2>
-             <button id="sendRequestBtn">Send Single Request</button>
-             <button id="sendBatchBtn">Send 10 Requests</button>
-             </div>
-
-        <div class="tinker-panel panel"> <h2>Tinker Mode</h2>
+        <div class="tinker-panel panel">
+            <h2>Tinker Mode</h2>
+            <div class="lb-settings-group">
+                <h3>Load Balancer Settings</h3>
+                <label for="lbAlgorithmSelect">Algorithm:</label>
+                <select id="lbAlgorithmSelect">
+                    <option value="random">Random</option>
+                    <option value="round-robin">Round Robin</option>
+                </select>
+            </div>
             <button id="addServerBtn">Add Server</button>
             <button id="removeServerBtn">Remove Server</button>
             <button id="killRandomServerBtn">Kill Random Server</button>
@@ -44,24 +56,26 @@
 
             <hr>
             <h3>Simulation Parameters</h3>
-             <div class="param-group"> <label for="dbLatencyInput">DB Latency (ms):</label>
-                 <input type="number" id="dbLatencyInput" value="300" min="50" max="2000">
-             </div>
-             <div class="param-group">
-                 <label for="serverProcessingInput">Server Process (ms):</label>
-                 <input type="number" id="serverProcessingInput" value="200" min="20" max="1000">
-             </div>
-             <div class="param-group">
-                 <label for="cacheHitRateInput">Cache Hit Rate (%):</label>
-                 <input type="number" id="cacheHitRateInput" value="70" min="0" max="100">
-             </div>
+            <div class="param-group"> <label for="dbLatencyInput">DB Latency (ms):</label>
+                <input type="number" id="dbLatencyInput" value="300" min="50" max="2000">
             </div>
+            <div class="param-group">
+                <label for="serverProcessingInput">Server Process (ms):</label>
+                <input type="number" id="serverProcessingInput" value="200" min="20" max="1000">
+            </div>
+            <div class="param-group">
+                <label for="cacheHitRateInput">Cache Hit Rate (%):</label>
+                <input type="number" id="cacheHitRateInput" value="70" min="0" max="100">
+            </div>
+        </div>
 
-        <div class="logs panel"> <h2>Event Logs</h2>
+        <div class="logs">
+            <h2>Event Logs</h2>
             <div id="logContainer"></div>
         </div>
 
-        <div class="metrics panel"> <h2>Metrics</h2>
+        <div class="metrics panel">
+            <h2>Metrics</h2>
             <p>Requests: <span id="requestCount">0</span></p>
             <p>Average Response Time: <span id="avgResponseTime">0</span> ms</p>
             <p>Cache Hits: <span id="cacheHits">0</span></p>

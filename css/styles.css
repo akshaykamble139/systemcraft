@@ -1,4 +1,3 @@
-/* Basic Reset and Typography */
 body {
     font-family: 'Roboto', sans-serif;
     text-align: center;
@@ -7,14 +6,14 @@ body {
     margin: 0;
     padding: 0;
     min-height: 100vh;
-    display: grid; /* Use CSS Grid for overall layout */
+    display: grid;
     grid-template-areas:
         "header header"
-        "main sidebar" /* Reverted grid areas */
+        "main sidebar"
         "footer footer";
-    grid-template-columns: 3fr 1fr; /* Reverted column widths */
+    grid-template-columns: 3fr 1fr;
     grid-template-rows: auto 1fr auto;
-    gap: 20px; /* Gap between grid areas */
+    gap: 20px;
 }
 
 h1 {
@@ -25,20 +24,18 @@ h1 {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* Main layout container - Reverted */
 .system-layout {
-    grid-area: main; /* Architecture goes in the main area */
+    grid-area: main;
     display: flex;
-    flex-direction: column; /* Stack architecture and actions vertically */
+    flex-direction: column;
     align-items: center;
     padding: 20px;
     background-color: #fff;
     border-radius: 12px;
-    box-shadow: 0 44px 20px rgba(0, 0, 0, 0.1); /* Corrected typo from 0 4px */
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
     margin-left: 20px;
 }
 
-/* Architecture Layout - Vertical Flow (Keep existing) */
 .architecture {
     display: flex;
     flex-direction: column;
@@ -47,7 +44,6 @@ h1 {
     padding: 20px;
 }
 
-/* Component Styling (Keep existing) */
 .component {
     padding: 18px 25px;
     border: 1px solid #b0bec5;
@@ -62,47 +58,58 @@ h1 {
     cursor: pointer;
 }
 
-/* Specific Component Colors (Keep existing) */
-.client { background-color: #e3f2fd; border-color: #90caf9; color: #1565c0; }
-.load-balancer { background-color: #fff3e0; border-color: #ffb74d; color: #ef6c00; }
-.server-group {
-    display: flex;
-    flex-direction: row; /* Servers horizontal */
-    gap: 15px;
-    margin: 0;
-     /* Reverted: Remove nowrap or overflow-x settings from here */
-     /* flex-wrap: nowrap; */
+.client {
+    background-color: #e3f2fd;
+    border-color: #90caf9;
+    color: #1565c0;
 }
 
-/* Style individual servers within the group (Keep existing) */
+.load-balancer {
+    background-color: #fff3e0;
+    border-color: #ffb74d;
+    color: #ef6c00;
+}
+
+.server-group {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    margin: 0;
+}
+
 .server-group .component {
     min-width: 100px;
     padding: 15px 20px;
 }
 
-.cache { background-color: #e1bee7; border-color: #ba68c8; color: #6a1b9a; }
-.database { background-color: #c8e6c9; border-color: #81c784; color: #388e3c; }
+.cache {
+    background-color: #e1bee7;
+    border-color: #ba68c8;
+    color: #6a1b9a;
+}
 
+.database {
+    background-color: #c8e6c9;
+    border-color: #81c784;
+    color: #388e3c;
+}
 
-/* Arrow Styling (Keep existing) */
 .arrow {
     font-size: 30px;
     font-weight: bold;
     color: #90a4ae;
     margin: 0;
-     display: block;
-     height: 20px;
-     line-height: 20px;
-     text-align: center;
+    display: block;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
 }
 
-/* Component Highlight (Keep existing) */
 .component.highlight {
     border-color: #00796b;
     box-shadow: 0 0 12px rgba(0, 121, 107, 0.8);
 }
 
-/* Failed Component State (Keep existing) */
 .component.failed {
     background-color: #ffcdd2 !important;
     border-color: #e57373;
@@ -112,14 +119,7 @@ h1 {
     pointer-events: none;
 }
 
-
-/* Removed old .actions styling */
-/* .actions { ... } */
-/* button#sendRequestBtn { ... } */
-
-
-/* Panel Styling (Logs, Metrics, Tinker, Traffic Controls) */
-.panel { /* Unified panel styling */
+.panel {
     background: #ffffff;
     border: 1px solid #e0e0e0;
     padding: 15px;
@@ -130,17 +130,15 @@ h1 {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
 }
 
-/* Sidebar Container - Reverted */
 .sidebar {
-     grid-area: sidebar; /* Assign sidebar panels to sidebar area */
-     display: flex;
-     flex-direction: column;
-     gap: 20px; /* Space between panels */
-     padding: 20px; /* Add padding to sidebar area */
-     margin-right: 20px; /* Add some margin */
+    grid-area: sidebar;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    margin-right: 20px;
 }
 
-/* Panel Heading Styling */
 .panel h2 {
     margin-top: 0;
     color: #555;
@@ -150,59 +148,74 @@ h1 {
     font-size: 1.1em;
 }
 
-/* Traffic Controls Panel Styling (NEW) */
 .traffic-controls {
-    /* Inherits .panel styling */
-    text-align: center; /* Center buttons within this panel */
+    text-align: center;
 }
 
 .traffic-controls button {
     margin: 5px;
     padding: 10px 15px;
     font-size: 1em;
-    background-color: #007bff; /* Primary color for action buttons */
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    min-width: 120px; /* Give buttons a minimum width */
+    min-width: 120px;
 }
 
 .traffic-controls button:hover {
     background-color: #0056b3;
 }
 
-
-/* Tinker Panel specific styling */
-.tinker-panel .param-group { /* Grouping for label/input */
-     margin-bottom: 15px;
-     display: flex;
-     flex-direction: column;
-     align-items: flex-start;
+.tinker-panel .param-group {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
-.tinker-panel label { /* Styling for labels */
-     font-weight: 600;
-     color: #555;
-     margin-bottom: 5px;
-     font-size: 0.95em;
+.tinker-panel label {
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 5px;
+    font-size: 0.95em;
 }
 
-.tinker-panel input[type="number"] { /* Styling for number inputs */
-     padding: 8px;
-     border: 1px solid #ccc;
-     border-radius: 4px;
-     width: 100%; /* Make input fill width */
-     box-sizing: border-box; /* Include padding and border in width */
-     font-size: 0.9em;
+.tinker-panel input[type="number"],
+.tinker-panel select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.9em;
+    background-color: white;
 }
 
-.tinker-panel button { /* Styling for tinker buttons */
+.tinker-panel .lb-settings-group {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.tinker-panel .lb-settings-group h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #555;
+    font-size: 1em;
+}
+
+.tinker-panel .lb-settings-group label {
+    margin-bottom: 5px;
+}
+
+.tinker-panel button {
     margin: 5px;
     padding: 10px 15px;
     font-size: 0.9em;
-    background-color: #f0f0f0; /* Subtle color for utility buttons */
+    background-color: #f0f0f0;
     border: 1px solid #ccc;
     border-radius: 4px;
     cursor: pointer;
@@ -213,8 +226,6 @@ h1 {
     background-color: #e0e0e0;
 }
 
-
-/* Logs Styling */
 .logs #logContainer {
     height: 200px;
     overflow-y: auto;
@@ -228,7 +239,6 @@ h1 {
     word-wrap: break-word;
 }
 
-/* Metrics Styling */
 .metrics p {
     margin: 8px 0;
     font-size: 0.95em;
@@ -240,8 +250,6 @@ h1 {
     color: #007bff;
 }
 
-
-/* Animation Container (Keep existing) */
 #animationContainer {
     position: absolute;
     top: 0;
@@ -263,7 +271,6 @@ h1 {
     z-index: 2;
 }
 
-/* Footer (Optional) */
 footer {
     grid-area: footer;
     text-align: center;
@@ -272,8 +279,6 @@ footer {
     font-size: 0.9em;
 }
 
-
-/* Responsive Adjustments - Reverted */
 @media (max-width: 900px) {
     body {
         grid-template-areas:
@@ -281,37 +286,46 @@ footer {
             "main"
             "sidebar"
             "footer";
-        grid-template-columns: 1fr; /* Stack everything in one column */
+        grid-template-columns: 1fr;
         grid-template-rows: auto 1fr auto auto auto;
     }
-     .system-layout, .sidebar {
-         margin: 10px;
-         padding: 15px;
-     }
-     .architecture {
-         gap: 15px;
-     }
-     .component {
-         min-width: auto;
-         padding: 12px 15px;
-     }
-     .arrow {
-         font-size: 25px;
-     }
-     /* Server group allows wrapping on small screens */
-     .server-group {
-          flex-wrap: wrap;
-          justify-content: center;
-     }
-      /* Tinker and traffic buttons styling for small screens */
-     .tinker-panel button, .traffic-controls button {
-          padding: 10px 15px;
-          font-size: 0.9em;
-          margin: 5px;
-     }
+
+    .system-layout,
+    .sidebar {
+        margin: 10px;
+        padding: 15px;
+    }
+
+    .architecture {
+        gap: 15px;
+    }
+
+    .component {
+        min-width: auto;
+        padding: 12px 15px;
+    }
+
+    .arrow {
+        font-size: 25px;
+    }
+
+    .server-group {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .tinker-panel button,
+    .traffic-controls button {
+        padding: 10px 15px;
+        font-size: 0.9em;
+        margin: 5px;
+    }
+
+    .tinker-panel select {
+        font-size: 0.9em;
+    }
 }
 
-/* Modal Styles (Keep existing) */
 .modal {
     display: none;
     position: fixed;

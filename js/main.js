@@ -25,6 +25,9 @@ let currentCacheHitRate = cacheHitRate;
 
 let componentProcessors = {};
 
+let lastServerIndex = -1; // For Round Robin
+let currentLbAlgorithm = 'random'; // Default algorithm
+
 function initializeComponentProcessors() {
     componentProcessors = {
         'client': { isProcessing: false, queue: [], processTime: 0, currentlyProcessingRequest: null },
@@ -41,12 +44,12 @@ function processComponentQueue(componentName) {
     const processor = componentProcessors[componentName];
 
     if (componentName.startsWith('server') && serverStates[componentName] !== 'active') {
-         positionComponentDots(componentName); // Reposition remaining if any
-         return;
+        positionComponentDots(componentName);
+        return;
     }
 
     if (!processor || processor.isProcessing || processor.queue.length === 0) {
-        positionComponentDots(componentName); // Reposition if queue state changed but no processing starts
+        positionComponentDots(componentName);
         return;
     }
 
@@ -56,17 +59,16 @@ function processComponentQueue(componentName) {
 
     addLog(`[Request #${request.id}] Started processing at ${componentName}. Queue size: ${processor.queue.length}`);
 
-    positionComponentDots(componentName); // Reposition dots when processing starts
-
+    positionComponentDots(componentName);
     let actualProcessTime = processor.processTime;
     if (componentName.startsWith('server')) {
-         actualProcessTime = currentServerProcessingTime;
+        actualProcessTime = currentServerProcessingTime;
     } else if (componentName === 'database') {
-         actualProcessTime = currentDbLatency;
+        actualProcessTime = currentDbLatency;
     } else if (componentName === 'cache') {
-         actualProcessTime = DEFAULT_CACHE_PROCESSING_TIME;
+        actualProcessTime = DEFAULT_CACHE_PROCESSING_TIME;
     } else if (componentName === 'load-balancer') {
-         actualProcessTime = DEFAULT_LOAD_BALANCER_PROCESSING_TIME;
+        actualProcessTime = DEFAULT_LOAD_BALANCER_PROCESSING_TIME;
     }
 
     setTimeout(() => {
@@ -76,14 +78,14 @@ function processComponentQueue(componentName) {
 
         request.runNextStep();
 
-         setTimeout(() => {
-             positionComponentDots(componentName);
-             processComponentQueue(componentName);
-         }, DEFAULT_NETWORK_LATENCY / 2);
+        setTimeout(() => {
+            positionComponentDots(componentName);
+            processComponentQueue(componentName);
+
+        }, DEFAULT_NETWORK_LATENCY / 2);
 
     }, actualProcessTime);
 }
-
 
 function addServer() {
     const serverGroup = document.querySelector('.server-group');
@@ -134,26 +136,26 @@ function removeServer() {
     if (serverToRemoveId) {
         const processor = componentProcessors[serverToRemoveId];
         if (processor) {
-             if(processor.currentlyProcessingRequest) {
-                 addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverToRemoveId} removal.`);
-                 processor.currentlyProcessingRequest.failed = true;
-                 clearDot(processor.currentlyProcessingRequest.id);
-                 processor.currentlyProcessingRequest.finishRequest(true);
-             }
-             if (processor.queue.length > 0) {
-                  addLog(`[System] ${processor.queue.length} requests failed in ${serverToRemoveId}'s queue.`);
-                   processor.queue.forEach(req => {
-                       req.failed = true;
-                       clearDot(req.id);
-                       req.finishRequest(true);
-                   });
-             }
-             processor.isProcessing = false;
-             processor.queue = [];
-             processor.currentlyProcessingRequest = null;
-             delete componentProcessors[serverToRemoveId]; // Remove processor state
-        }
+            if (processor.currentlyProcessingRequest) {
+                addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverToRemoveId} removal.`);
+                processor.currentlyProcessingRequest.failed = true;
+                clearDot(processor.currentlyProcessingRequest.id);
+                processor.currentlyProcessingRequest.finishRequest(true);
+            }
+            if (processor.queue.length > 0) {
+                addLog(`[System] ${processor.queue.length} requests failed in ${serverToRemoveId}'s queue.`);
+                processor.queue.forEach(req => {
+                    req.failed = true;
+                    clearDot(req.id);
+                    req.finishRequest(true);
+                });
+            }
 
+            processor.isProcessing = false;
+            processor.queue = [];
+            processor.currentlyProcessingRequest = null;
+            delete componentProcessors[serverToRemoveId];
+        }
 
         const serverToRemoveDiv = document.querySelector(`.${serverToRemoveId}`);
         if (serverToRemoveDiv) {
@@ -161,7 +163,6 @@ function removeServer() {
             addLog(`[System] Removed ${serverToRemoveId}`);
             delete serverStates[serverToRemoveId];
             delete serverCounts[serverToRemoveId];
-
 
             console.log("Active Servers:", activeServers);
             console.log("Server States:", serverStates);
@@ -189,29 +190,27 @@ function killServer(serverId) {
 
         const processor = componentProcessors[serverId];
         if (processor) {
-             if(processor.currentlyProcessingRequest) {
-                 addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverId} failure.`);
-                 processor.currentlyProcessingRequest.failed = true;
-                 clearDot(processor.currentlyProcessingRequest.id);
-                 processor.currentlyProcessingRequest.finishRequest(true);
-             }
-             if (processor.queue.length > 0) {
-                  addLog(`[System] ${processor.queue.length} requests failed in ${serverId}'s queue.`);
-                   processor.queue.forEach(req => {
-                       req.failed = true;
-                       clearDot(req.id);
-                       req.finishRequest(true);
-                   });
-             }
-             processor.isProcessing = false;
-             processor.queue = [];
-             processor.currentlyProcessingRequest = null;
+            if (processor.currentlyProcessingRequest) {
+                addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverId} failure.`);
+                processor.currentlyProcessingRequest.failed = true;
+                clearDot(processor.currentlyProcessingRequest.id);
+                processor.currentlyProcessingRequest.finishRequest(true);
+            }
+            if (processor.queue.length > 0) {
+                addLog(`[System] ${processor.queue.length} requests failed in ${serverId}'s queue.`);
+                processor.queue.forEach(req => {
+                    req.failed = true;
+                    clearDot(req.id);
+                    req.finishRequest(true);
+                });
+            }
+            processor.isProcessing = false;
+            processor.queue = [];
+            processor.currentlyProcessingRequest = null;
         }
 
         console.log("Active Servers after failure:", activeServers);
         console.log("Server States:", serverStates);
-
-
     } else {
         addLog(`[System] ${serverId} is already down or does not exist.`);
     }
@@ -228,7 +227,6 @@ function reviveServer(serverId) {
             return numA - numB;
         });
 
-
         const serverDiv = document.querySelector(`.${serverId}`);
         if (serverDiv) {
             serverDiv.classList.remove('failed');
@@ -237,23 +235,36 @@ function reviveServer(serverId) {
         }
         addLog(`[System] ${serverId} revived!`);
 
-         if (!componentProcessors[serverId]) {
-             componentProcessors[serverId] = { isProcessing: false, queue: [], processTime: currentServerProcessingTime, currentlyProcessingRequest: null };
-         } else {
-             componentProcessors[serverId].isProcessing = false;
-             componentProcessors[serverId].queue = [];
-             componentProcessors[serverId].processTime = currentServerProcessingTime;
-             componentProcessors[serverId].currentlyProcessingRequest = null;
-         }
-
+        if (!componentProcessors[serverId]) {
+            componentProcessors[serverId] = { isProcessing: false, queue: [], processTime: currentServerProcessingTime, currentlyProcessingRequest: null };
+        } else {
+            componentProcessors[serverId].isProcessing = false;
+            componentProcessors[serverId].queue = [];
+            componentProcessors[serverId].processTime = currentServerProcessingTime;
+            componentProcessors[serverId].currentlyProcessingRequest = null;
+        }
         console.log("Active Servers after revival:", activeServers);
         console.log("Server States:", serverStates);
-
     } else {
         addLog(`[System] ${serverId} is already active or does not exist.`);
     }
 }
 
+function selectServer(algorithm) {
+    if (activeServers.length === 0) {
+        return null;
+    }
+
+    if (algorithm === 'random') {
+        const randomIndex = Math.floor(Math.random() * activeServers.length);
+        return activeServers[randomIndex];
+    } else if (algorithm === 'round-robin') {
+        lastServerIndex = (lastServerIndex + 1) % activeServers.length;
+        return activeServers[lastServerIndex];
+    }
+    console.error("Unknown load balancer algorithm:", algorithm);
+    return activeServers[0];
+}
 
 function addLog(message) {
     const logContainer = document.getElementById('logContainer');
@@ -352,13 +363,13 @@ class Request {
         const isFinalClientStep = this.currentStep === this.steps.length - 1 && component === 'client';
 
         if (isFinalClientStep) {
-             moveRequestDot(this.id, component, DEFAULT_NETWORK_LATENCY);
-             setTimeout(() => {
-                  this.finishRequest(this.failed);
-                  clearDot(this.id);
-             }, DEFAULT_NETWORK_LATENCY);
-             return;
-         }
+            moveRequestDot(this.id, component, DEFAULT_NETWORK_LATENCY);
+            setTimeout(() => {
+                this.finishRequest(this.failed);
+                clearDot(this.id);
+            }, DEFAULT_NETWORK_LATENCY);
+            return;
+        }
 
         moveRequestDot(this.id, component, networkDelayToComponent);
 
@@ -366,23 +377,23 @@ class Request {
             const componentProcessor = componentProcessors[component];
 
             if (!componentProcessor) {
-                 console.error(`Processor not found for component: ${component}`);
-                 this.failed = true;
-                 clearDot(this.id);
-                 this.finishRequest(true);
-                 return;
+                console.error(`Processor not found for component: ${component}`);
+                this.failed = true;
+                clearDot(this.id);
+                this.finishRequest(true);
+                return;
             }
 
             if (component === 'load-balancer' && this.chosenServer === null) {
-                if (activeServers.length === 0) {
+                this.chosenServer = selectServer(currentLbAlgorithm); // Use the new function
+
+                if (this.chosenServer === null) {
                     addLog(`[Request #${this.id}] Failed: Load Balancer found no active servers.`);
                     this.failed = true;
                     clearDot(this.id);
                     this.finishRequest(true);
                     return;
                 }
-                const randomIndex = Math.floor(Math.random() * activeServers.length);
-                this.chosenServer = activeServers[randomIndex];
 
                 const intermediateSteps = [
                     { component: this.chosenServer, message: `Request received by ${this.chosenServer}.` },
@@ -397,8 +408,7 @@ class Request {
                 currentStepData.message = `Load Balancer routed to ${this.chosenServer}`;
             }
             else if (component === 'cache') {
-                 this.hitCache = Math.random() < cacheHitRate;
-
+                this.hitCache = Math.random() < cacheHitRate;
                 if (this.hitCache) {
                     cacheHits++;
                     currentStepData.message = 'Cache HIT!';
@@ -428,18 +438,15 @@ class Request {
             }
 
             this.currentStep++;
-
-            componentProcessor.queue.push(this); // Add the request instance to the queue
-
-            positionComponentDots(component); // Reposition dots when a new one arrives
+            componentProcessor.queue.push(this);
+            positionComponentDots(component);
 
             if (!componentProcessor.isProcessing) {
-                 processComponentQueue(component);
+                processComponentQueue(component);
             }
 
         }, networkDelayToComponent);
     }
-
 
     finishRequest(failed = false) {
         if (this.finished) {
@@ -475,6 +482,10 @@ document.getElementById('sendRequestBtn').addEventListener('click', () => {
     new Request(nextRequestId++);
 });
 
+document.getElementById('lbAlgorithmSelect').addEventListener('change', (event) => {
+    currentLbAlgorithm = event.target.value;
+    addLog(`[System] Load Balancer algorithm changed to: ${currentLbAlgorithm.replace('-', ' ').toUpperCase()}`);
+});
 document.getElementById('addServerBtn').addEventListener('click', addServer);
 document.getElementById('removeServerBtn').addEventListener('click', removeServer);
 document.getElementById('killRandomServerBtn').addEventListener('click', () => {
@@ -496,10 +507,9 @@ document.getElementById('reviveRandomServerBtn').addEventListener('click', () =>
         addLog("[System] No servers are currently down.");
     }
 });
-
 document.getElementById('dbLatencyInput').addEventListener('change', (event) => {
     currentDbLatency = parseInt(event.target.value);
-    if(componentProcessors['database']) {
+    if (componentProcessors['database']) {
         componentProcessors['database'].processTime = currentDbLatency;
     }
     addLog(`[System] Database latency set to ${currentDbLatency}ms.`);
@@ -549,31 +559,26 @@ function createRequestDot(id) {
     }
 }
 
-// Modified moveRequestDot to accept duration and target position
 function moveRequestDot(id, componentName, duration) {
-     const dot = document.getElementById(`request-dot-${id}`);
-     const component = document.querySelector(`.${componentName}`);
+    const dot = document.getElementById(`request-dot-${id}`);
+    const component = document.querySelector(`.${componentName}`);
 
-     if (!dot || !component) {
-         console.warn(`Attempted to move dot ${id} to component .${componentName}, but one was not found. Removing dot.`);
-         clearDot(id);
-         return;
-     }
+    if (!dot || !component) {
+        console.warn(`Attempted to move dot ${id} to component .${componentName}, but one was not found. Removing dot.`);
+        clearDot(id);
+        return;
+    }
 
-     const rect = component.getBoundingClientRect();
-     const containerRect = document.getElementById('animationContainer').getBoundingClientRect();
+    const rect = component.getBoundingClientRect();
+    const containerRect = document.getElementById('animationContainer').getBoundingClientRect();
 
-     // Target is the center of the component
-     const targetX = rect.left - containerRect.left + rect.width / 2;
-     const targetY = rect.top - containerRect.top + rect.height / 2;
+    const targetX = rect.left - containerRect.left + rect.width / 2;
+    const targetY = rect.top - containerRect.top + rect.height / 2;
 
-
-     dot.style.transition = `all ${duration / 1000}s linear`;
-
-     dot.style.left = `${targetX}px`;
-     dot.style.top = `${targetY}px`;
+    dot.style.transition = `all ${duration / 1000}s linear`;
+    dot.style.left = `${targetX}px`;
+    dot.style.top = `${targetY}px`;
 }
-
 
 function clearDot(id) {
     const dot = document.getElementById(`request-dot-${id}`);
@@ -582,7 +587,6 @@ function clearDot(id) {
     }
 }
 
-// --- NEW: Function to position dots for a component's queue ---
 function positionComponentDots(componentName) {
     const processor = componentProcessors[componentName];
     if (!processor) return;
@@ -595,15 +599,11 @@ function positionComponentDots(componentName) {
 
     const componentRect = componentDiv.getBoundingClientRect();
     const containerRect = document.getElementById('animationContainer').getBoundingClientRect();
-
-    // Base position for the queue visual - below the component
     const baseX = componentRect.left - containerRect.left + componentRect.width / 2;
-    const baseY = componentRect.top - containerRect.top + componentRect.height + 10; // 10px below component
+    const baseY = componentRect.top - containerRect.top + componentRect.height + 10;
 
-    const dotSize = 10; // Defined in CSS
-    const spacing = 5; // Space between dots
-
-    // Collect all requests associated with this component (processing + queued)
+    const dotSize = 10;
+    const spacing = 5;
     const requestsToPosition = [];
     if (processor.currentlyProcessingRequest) {
         requestsToPosition.push(processor.currentlyProcessingRequest);
@@ -611,33 +611,27 @@ function positionComponentDots(componentName) {
     requestsToPosition.push(...processor.queue);
 
     const totalDots = requestsToPosition.length;
-    const totalWidth = (totalDots * dotSize) + Math.max(0, (totalDots - 1) * spacing); // Ensure spacing is 0 for 1 dot
-    let startX = baseX - totalWidth / 2; // Center the group horizontally
-
+    const totalWidth = (totalDots * dotSize) + Math.max(0, (totalDots - 1) * spacing);
+    let startX = baseX - totalWidth / 2;
     requestsToPosition.forEach((request, index) => {
         const dot = document.getElementById(`request-dot-${request.id}`);
         if (dot) {
             const targetX = startX + index * (dotSize + spacing);
-            const targetY = baseY; // Keep dots on the same vertical line below the component
+            const targetY = baseY;
 
-            // Apply transition for smooth movement to the queue position
-            // Use a short duration so dots snap into queue formation quickly
-             dot.style.transition = `all 0.2s ease-out`; // Short transition for queue rearrangement
-
+            dot.style.transition = `all 0.2s ease-out`;
             dot.style.left = `${targetX}px`;
             dot.style.top = `${targetY}px`;
         }
     });
 }
 
-
 function getRandomColor() {
     const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#d35400', '#7f8c8d'];
     return colors[Math.floor(Math.random() * colors.length)];
 }
 
-// Initial setup: Initialize server counts, states, and processors for existing servers
-initializeComponentProcessors(); // Call this first
+initializeComponentProcessors();
 
 activeServers.forEach(server => {
     serverCounts[server] = 0;
@@ -645,33 +639,32 @@ activeServers.forEach(server => {
     const serverDiv = document.querySelector(`.${server}`);
     if (serverDiv) {
         serverDiv.style.backgroundColor = getRandomColor();
-         serverDiv.addEventListener('click', (event) => {
-             event.stopPropagation();
-             if (!serverDiv.classList.contains('failed')) {
-                 showComponentDetails(server);
-             } else {
-                 addLog(`[System] Cannot show details for failed component ${server}.`);
-             }
-         });
+        serverDiv.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (!serverDiv.classList.contains('failed')) {
+                showComponentDetails(server);
+            } else {
+                addLog(`[System] Cannot show details for failed component ${server}.`);
+            }
+        });
     }
 });
 
 document.querySelectorAll('.component:not(.server1):not(.server2)').forEach(componentDiv => {
-     const componentClass = Array.from(componentDiv.classList).find(cls =>
-         cls === 'client' || cls === 'load-balancer' || cls === 'cache' || cls === 'database'
-     );
-     if (componentClass) {
-         componentDiv.addEventListener('click', (event) => {
-              event.stopPropagation();
-              if (!componentDiv.classList.contains('failed')) {
-                  showComponentDetails(componentClass);
-              } else {
-                   addLog(`[System] Cannot show details for failed component ${componentClass}.`);
-              }
-         });
-     }
+    const componentClass = Array.from(componentDiv.classList).find(cls =>
+        cls === 'client' || cls === 'load-balancer' || cls === 'cache' || cls === 'database'
+    );
+    if (componentClass) {
+        componentDiv.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (!componentDiv.classList.contains('failed')) {
+                showComponentDetails(componentClass);
+            } else {
+                addLog(`[System] Cannot show details for failed component ${componentClass}.`);
+            }
+        });
+    }
 });
-
 
 document.getElementById('cacheHits').textContent = cacheHits;
 document.getElementById('cacheMisses').textContent = cacheMisses;
@@ -700,14 +693,13 @@ function showComponentDetails(componentName) {
     const processor = componentProcessors[componentName];
 
     if (processor) {
-         detailsHtml += `<p><strong>Current Queue:</strong> ${processor.queue.length}</p>`;
-         detailsHtml += `<p><strong>Processing Now:</strong> ${processor.isProcessing ? 'Yes' : 'No'}</p>`;
-         if (processor.currentlyProcessingRequest) {
-              detailsHtml += `<p><strong>Processing Request ID:</strong> ${processor.currentlyProcessingRequest.id}</p>`;
-         }
-         detailsHtml += `<hr>`;
+        detailsHtml += `<p><strong>Current Queue:</strong> ${processor.queue.length}</p>`;
+        detailsHtml += `<p><strong>Processing Now:</strong> ${processor.isProcessing ? 'Yes' : 'No'}</p>`;
+        if (processor.currentlyProcessingRequest) {
+            detailsHtml += `<p><strong>Processing Request ID:</strong> ${processor.currentlyProcessingRequest.id}</p>`;
+        }
+        detailsHtml += `<hr>`;
     }
-
 
     if (componentName.startsWith('server')) {
         const serverId = componentName;
@@ -718,7 +710,6 @@ function showComponentDetails(componentName) {
         detailsHtml += `<p><strong>Requests Handled:</strong> ${requestsHandled}</p>`;
         detailsHtml += `<p><strong>Simulated Process Time:</strong> ${currentServerProcessingTime}ms</p>`;
 
-
     } else if (componentName === 'cache') {
         detailsHtml += `<p><strong>Hits:</strong> ${cacheHits}</p>`;
         detailsHtml += `<p><strong>Misses:</strong> ${cacheMisses}</p>`;
@@ -726,17 +717,14 @@ function showComponentDetails(componentName) {
         const hitRate = total > 0 ? ((cacheHits / total) * 100).toFixed(1) : 0;
         detailsHtml += `<p><strong>Hit Rate:</strong> ${hitRate}%</p>`;
         detailsHtml += `<p><strong>Configured Hit Rate:</strong> ${(currentCacheHitRate * 100).toFixed(0)}%</p>`;
-
-
     } else if (componentName === 'database') {
         detailsHtml += `<p><strong>Simulated Latency:</strong> ${currentDbLatency}ms</p>`;
-
-
     } else if (componentName === 'load-balancer') {
-        detailsHtml += `<p><strong>Algorithm:</strong> Random (Basic)</p>`;
+        detailsHtml += `<p><strong>Algorithm:</strong> ${currentLbAlgorithm.replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</p>`;
         detailsHtml += `<p><strong>Active Servers:</strong> ${activeServers.length}</p>`;
-
-
+        if (currentLbAlgorithm === 'round-robin') {
+            detailsHtml += `<p><strong>Last Used Index:</strong> ${lastServerIndex === -1 ? 'N/A' : lastServerIndex}</p>`;
+        }
     } else if (componentName === 'client') {
         detailsHtml += `<p>This represents the user/browser.</p>`;
         detailsHtml += `<p>It initiates and receives requests.</p>`;
