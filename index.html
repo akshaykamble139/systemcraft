@@ -6,6 +6,7 @@
     <title>SystemCraft - Learn System Design Visually</title>
     <link rel="stylesheet" href="css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="assets/favicon.png" type="image/x-icon">
 </head>
 
 <body>
@@ -37,6 +38,11 @@
             <h2>Traffic Simulation</h2>
             <button id="sendRequestBtn">Send Single Request</button>
             <button id="sendBatchBtn">Send 10 Requests</button>
+            <div class="stress-test-group">
+                <label for="stressRequestCount">Requests:</label>
+                <input type="number" id="stressRequestCount" value="100" min="10" max="1000" step="10">
+                <button id="startStressTestBtn">Start Stress Test</button>
+            </div>
         </div>
 
         <div class="tinker-panel panel">
@@ -67,6 +73,14 @@
                 <label for="cacheHitRateInput">Cache Hit Rate (%):</label>
                 <input type="number" id="cacheHitRateInput" value="70" min="0" max="100">
             </div>
+            <div class="param-group">
+                <label for="networkMultiplierInput">Server↔DB Network Multiplier:</label>
+                <input type="number" id="networkMultiplierInput" value="1.0" min="1" max="10" step="0.5">
+            </div>
+            <hr>
+            <h3>Server Health</h3>
+            <button id="slowServerBtn">Slow Down Random Server</button>
+            <button id="restoreServerBtn">Restore Random Server Speed</button>
         </div>
 
         <div class="logs">
@@ -81,6 +95,8 @@
             <p>Cache Hits: <span id="cacheHits">0</span></p>
             <p>Cache Misses: <span id="cacheMisses">0</span></p>
             <p>Cache Hit Rate: <span id="cacheHitRate">0%</span></p>
+            <p>Failed Requests: <span id="failedRequests">0</span></p>
+            <p>Error Rate: <span id="errorRate">0.0%</span></p>
         </div>
     </div>
 
@@ -96,8 +112,7 @@
 
     <div id="animationContainer"></div>
 
-    <!-- <script src="js/main.js"></script> -->
-    <script type="module" src="js/ui_main.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 
 </html>

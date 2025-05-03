@@ -1,6 +1,6 @@
 // Contains core simulation logic (processing, Request class) and server management.
 import * as State from './state_config.js';
-import { addLog, clearDot, getRandomColor, showComponentDetails, updateMetrics, positionComponentDots, highlightComponent, createRequestDot, moveRequestDot } from './ui_main.js';
+import { addLog, clearDot, getRandomColor, showComponentDetails, updateMetrics, positionComponentDots, highlightComponent, createRequestDot, moveRequestDot } from './main.js';
 
 export function initializeComponentProcessors() {
     let processors = {
@@ -19,12 +19,12 @@ export function processComponentQueue(componentName) {
     const processor = State.componentProcessors[componentName];
 
     if (componentName.startsWith('server') && State.serverStates[componentName] !== 'active') {
-        positionComponentDots(componentName); 
+        positionComponentDots(componentName);
         return;
     }
 
     if (!processor || processor.isProcessing || processor.queue.length === 0) {
-        positionComponentDots(componentName); 
+        positionComponentDots(componentName);
         return;
     }
 
@@ -32,14 +32,15 @@ export function processComponentQueue(componentName) {
     processor.isProcessing = true;
     processor.currentlyProcessingRequest = request;
 
-    addLog(`[Request #${request.id}] Started processing at ${componentName}. Queue size: ${processor.queue.length}`); 
+    addLog(`[Request #${request.id}] Started processing at ${componentName}. Queue size: ${processor.queue.length}`);
 
-    positionComponentDots(componentName); 
+    positionComponentDots(componentName);
     let actualProcessTime = processor.processTime;
     if (componentName.startsWith('server')) {
-        actualProcessTime = State.currentServerProcessingTime;
+        const multiplier = State.serverProcessingTimeMultipliers[componentName] || 1.0;
+        actualProcessTime = State.currentServerProcessingTime * multiplier;
     } else if (componentName === 'database') {
-        actualProcessTime = State.currentDbLatency;
+        actualProcessTime = State.currentDbLatency * State.networkLatencyMultiplier_ServerDB;
     } else if (componentName === 'cache') {
         actualProcessTime = State.DEFAULT_CACHE_PROCESSING_TIME;
     } else if (componentName === 'load-balancer') {
@@ -49,12 +50,12 @@ export function processComponentQueue(componentName) {
     setTimeout(() => {
         processor.isProcessing = false;
         processor.currentlyProcessingRequest = null;
-        addLog(`[Request #${request.id}] Finished processing at ${componentName}.`); 
+        addLog(`[Request #${request.id}] Finished processing at ${componentName}.`);
 
-        request.runNextStep(); 
+        request.runNextStep();
 
         setTimeout(() => {
-            positionComponentDots(componentName); 
+            positionComponentDots(componentName);
             processComponentQueue(componentName);
         }, State.DEFAULT_NETWORK_LATENCY / 2);
 
@@ -90,7 +91,7 @@ export class Request {
 
 
         if (State.activeServers.length === 0) {
-            addLog(`[Request #${this.id}] Failed: No active servers available.`); 
+            addLog(`[Request #${this.id}] Failed: No active servers available.`);
             this.finishRequest(true);
             return;
         }
@@ -102,7 +103,7 @@ export class Request {
             { component: 'client', message: 'Response returned to Client.' }
         ];
 
-        createRequestDot(this.id); 
+        createRequestDot(this.id);
         this.runNextStep();
     }
 
@@ -118,37 +119,37 @@ export class Request {
         if (this.currentComponent) {
             const prevComponent = document.querySelector(`.${this.currentComponent}`);
             if (prevComponent) {
-                prevComponent.classList.remove('highlight'); 
+                prevComponent.classList.remove('highlight');
             }
         }
 
         if (component.startsWith('server') && State.serverStates[component] !== 'active') {
-            addLog(`[Request #${this.id}] Failed: Target server ${component} is down.`); 
+            addLog(`[Request #${this.id}] Failed: Target server ${component} is down.`);
             this.failed = true;
-            clearDot(this.id); 
+            clearDot(this.id);
             this.finishRequest(true);
             return;
         }
 
-        highlightComponent(component); 
+        highlightComponent(component);
         this.currentComponent = component;
 
-        addLog(`[Request #${this.id}] ${message}`); 
+        addLog(`[Request #${this.id}] ${message}`);
 
         const networkDelayToComponent = State.DEFAULT_NETWORK_LATENCY;
 
         const isFinalClientStep = this.currentStep === this.steps.length - 1 && component === 'client';
 
         if (isFinalClientStep) {
-            moveRequestDot(this.id, component, State.DEFAULT_NETWORK_LATENCY); 
+            moveRequestDot(this.id, component, State.DEFAULT_NETWORK_LATENCY);
             setTimeout(() => {
                 this.finishRequest(this.failed);
-                clearDot(this.id); 
+                clearDot(this.id);
             }, State.DEFAULT_NETWORK_LATENCY);
             return;
         }
 
-        moveRequestDot(this.id, component, networkDelayToComponent); 
+        moveRequestDot(this.id, component, networkDelayToComponent);
 
         setTimeout(() => {
             const componentProcessor = State.componentProcessors[component];
@@ -156,7 +157,7 @@ export class Request {
             if (!componentProcessor) {
                 console.error(`Processor not found for component: ${component}`);
                 this.failed = true;
-                clearDot(this.id); 
+                clearDot(this.id);
                 this.finishRequest(true);
                 return;
             }
@@ -165,9 +166,9 @@ export class Request {
                 this.chosenServer = selectServer(State.currentLbAlgorithm);
 
                 if (this.chosenServer === null) {
-                    addLog(`[Request #${this.id}] Failed: Load Balancer found no active servers.`); 
+                    addLog(`[Request #${this.id}] Failed: Load Balancer found no active servers.`);
                     this.failed = true;
-                    clearDot(this.id); 
+                    clearDot(this.id);
                     this.finishRequest(true);
                     return;
                 }
@@ -193,12 +194,12 @@ export class Request {
                     const dbStepIndex = this.steps.findIndex((step, index) => index > this.currentStep && step.component === 'database');
 
                     if (dbStepIndex !== -1) {
-                         const serverReturnDbIndex = this.steps.findIndex((step, index) => index > dbStepIndex && step.component === this.chosenServer && step.message.includes('Database returned data'));
+                        const serverReturnDbIndex = this.steps.findIndex((step, index) => index > dbStepIndex && step.component === this.chosenServer && step.message.includes('Database returned data'));
 
                         if (serverReturnDbIndex !== -1) {
                             this.steps.splice(dbStepIndex, serverReturnDbIndex - dbStepIndex + 1);
                         } else {
-                             this.steps.splice(dbStepIndex, 1);
+                            this.steps.splice(dbStepIndex, 1);
                         }
 
                         const serverReturnCacheStep = {
@@ -216,7 +217,7 @@ export class Request {
 
             this.currentStep++;
             componentProcessor.queue.push(this);
-            positionComponentDots(component); 
+            positionComponentDots(component);
 
             if (!componentProcessor.isProcessing) {
                 processComponentQueue(component);
@@ -234,22 +235,24 @@ export class Request {
         const endTime = Date.now();
         const responseTime = endTime - this.startTime;
 
+        State.updateState({ requestCount: State.requestCount + 1 });
         if (!failed) {
-            updateMetrics(responseTime); 
             if (this.chosenServer && State.serverCounts[this.chosenServer] !== undefined) {
-                 let newCounts = {...State.serverCounts};
-                 newCounts[this.chosenServer]++;
-                 State.updateState({ serverCounts: newCounts });
+                let newCounts = { ...State.serverCounts };
+                newCounts[this.chosenServer]++;
+                State.updateState({ serverCounts: newCounts });
             }
             console.log(`[Request #${this.id}] Completed in ${responseTime}ms by ${this.chosenServer || 'N/A'} (Cache ${this.hitCache ? 'HIT' : 'MISS'})`);
         } else {
             console.log(`[Request #${this.id}] Failed after ${responseTime}ms`);
+            State.updateState({ totalFailedRequests: State.totalFailedRequests + 1 });
         }
+        updateMetrics(failed ? -1 : responseTime);
 
         if (this.currentComponent) {
             const prevComponent = document.querySelector(`.${this.currentComponent}`);
             if (prevComponent) {
-                prevComponent.classList.remove('highlight'); 
+                prevComponent.classList.remove('highlight');
             }
         }
     }
@@ -258,48 +261,50 @@ export class Request {
 
 // Server Management Functions
 export function addServer() {
-    const serverGroup = document.querySelector('.server-group'); 
+    const serverGroup = document.querySelector('.server-group');
     const currentNextId = State.nextServerId;
     const newServerId = `server${currentNextId}`;
     State.updateState({ nextServerId: currentNextId + 1 });
 
-    const newServerDiv = document.createElement('div'); 
+    const newServerDiv = document.createElement('div');
     newServerDiv.classList.add('component', newServerId);
     newServerDiv.textContent = `Server ${currentNextId}`;
-    newServerDiv.style.backgroundColor = getRandomColor(); 
+    newServerDiv.style.backgroundColor = getRandomColor();
 
-    newServerDiv.addEventListener('click', (event) => { 
+    newServerDiv.addEventListener('click', (event) => {
         event.stopPropagation();
         if (!newServerDiv.classList.contains('failed')) {
-            showComponentDetails(newServerId); 
+            showComponentDetails(newServerId);
         } else {
-            addLog(`[System] Cannot show details for failed component ${newServerId}.`); 
+            addLog(`[System] Cannot show details for failed component ${newServerId}.`);
         }
     });
 
-    serverGroup.appendChild(newServerDiv); 
+    serverGroup.appendChild(newServerDiv);
 
     const updatedActiveServers = [...State.activeServers, newServerId];
-    const updatedServerStates = {...State.serverStates, [newServerId]: 'active' };
-    const updatedServerCounts = {...State.serverCounts, [newServerId]: 0 };
-    const updatedComponentProcessors = {...State.componentProcessors, [newServerId]: { isProcessing: false, queue: [], processTime: State.currentServerProcessingTime, currentlyProcessingRequest: null } };
+    const updatedServerStates = { ...State.serverStates, [newServerId]: 'active' };
+    const updatedServerCounts = { ...State.serverCounts, [newServerId]: 0 };
+    const updatedComponentProcessors = { ...State.componentProcessors, [newServerId]: { isProcessing: false, queue: [], processTime: State.currentServerProcessingTime, currentlyProcessingRequest: null } };
+    const updatedServerProcessingMultipliers = { ...State.serverProcessingTimeMultipliers, [newServerId]: 1.0 };
 
     State.updateState({
         activeServers: updatedActiveServers,
         serverStates: updatedServerStates,
         serverCounts: updatedServerCounts,
-        componentProcessors: updatedComponentProcessors
+        componentProcessors: updatedComponentProcessors,
+        serverProcessingTimeMultipliers: updatedServerProcessingMultipliers
     });
 
 
-    addLog(`[System] Added ${newServerId}`); 
+    addLog(`[System] Added ${newServerId}`);
     console.log("Active Servers:", State.activeServers);
     console.log("Server States:", State.serverStates);
 }
 
 export function removeServer() {
     if (State.activeServers.length <= 1) {
-        addLog("[System] Cannot remove server: At least one active server is required."); 
+        addLog("[System] Cannot remove server: At least one active server is required.");
         return;
     }
 
@@ -318,74 +323,77 @@ export function removeServer() {
         const processor = State.componentProcessors[serverToRemoveId];
         if (processor) {
             if (processor.currentlyProcessingRequest) {
-                addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverToRemoveId} removal.`); 
+                addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverToRemoveId} removal.`);
                 processor.currentlyProcessingRequest.failed = true;
-                clearDot(processor.currentlyProcessingRequest.id); 
-                processor.currentlyProcessingRequest.finishRequest(true); 
+                clearDot(processor.currentlyProcessingRequest.id);
+                processor.currentlyProcessingRequest.finishRequest(true);
             }
             if (processor.queue.length > 0) {
-                addLog(`[System] ${processor.queue.length} requests failed in ${serverToRemoveId}'s queue.`); 
+                addLog(`[System] ${processor.queue.length} requests failed in ${serverToRemoveId}'s queue.`);
                 processor.queue.forEach(req => {
                     req.failed = true;
-                    clearDot(req.id); 
-                    req.finishRequest(true); 
+                    clearDot(req.id);
+                    req.finishRequest(true);
                 });
             }
-            const newProcessors = {...State.componentProcessors};
+            const newProcessors = { ...State.componentProcessors };
             delete newProcessors[serverToRemoveId];
             State.updateState({ componentProcessors: newProcessors });
         }
 
-        const serverToRemoveDiv = document.querySelector(`.${serverToRemoveId}`); 
+        const serverToRemoveDiv = document.querySelector(`.${serverToRemoveId}`);
         if (serverToRemoveDiv) {
-            serverToRemoveDiv.remove(); 
-            addLog(`[System] Removed ${serverToRemoveId}`); 
+            serverToRemoveDiv.remove();
+            addLog(`[System] Removed ${serverToRemoveId}`);
 
-            const newStates = {...State.serverStates};
+            const newStates = { ...State.serverStates };
             delete newStates[serverToRemoveId];
-            const newCounts = {...State.serverCounts};
+            const newCounts = { ...State.serverCounts };
             delete newCounts[serverToRemoveId];
+            const newMultipliers = { ...State.serverProcessingTimeMultipliers };
+            delete newMultipliers[serverToRemoveId];
 
             State.updateState({
                 activeServers: updatedActiveServers,
                 serverStates: newStates,
-                serverCounts: newCounts
+                serverCounts: newCounts,
+                serverProcessingTimeMultipliers: newMultipliers
             });
 
             console.log("Active Servers:", State.activeServers);
             console.log("Server States:", State.serverStates);
         }
     } else {
-        addLog("[System] No active servers available to remove."); 
+        addLog("[System] No active servers available to remove.");
     }
 }
 
 export function killServer(serverId) {
     if (State.serverStates[serverId] === 'active') {
-        const newStates = {...State.serverStates, [serverId]: 'down' };
+        const newStates = { ...State.serverStates, [serverId]: 'down' };
         const updatedActiveServers = State.activeServers.filter(id => id !== serverId);
 
-        const serverDiv = document.querySelector(`.${serverId}`); 
+        const serverDiv = document.querySelector(`.${serverId}`);
         if (serverDiv) {
-            serverDiv.classList.add('failed'); 
-            serverDiv.textContent = `Server ${serverId.replace('server', '')} (DOWN)`; 
+            serverDiv.classList.add('failed');
+            serverDiv.textContent = `Server ${serverId.replace('server', '')} (DOWN)`;
         }
-        addLog(`[System] ${serverId} failed!`); 
+        addLog(`[System] ${serverId} failed!`);
 
         const processor = State.componentProcessors[serverId];
         if (processor) {
             if (processor.currentlyProcessingRequest) {
-                addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverId} failure.`); 
+                addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverId} failure.`);
                 processor.currentlyProcessingRequest.failed = true;
-                clearDot(processor.currentlyProcessingRequest.id); 
-                processor.currentlyProcessingRequest.finishRequest(true); 
+                clearDot(processor.currentlyProcessingRequest.id);
+                processor.currentlyProcessingRequest.finishRequest(true);
             }
             if (processor.queue.length > 0) {
-                addLog(`[System] ${processor.queue.length} requests failed in ${serverId}'s queue.`); 
+                addLog(`[System] ${processor.queue.length} requests failed in ${serverId}'s queue.`);
                 processor.queue.forEach(req => {
                     req.failed = true;
-                    clearDot(req.id); 
-                    req.finishRequest(true); 
+                    clearDot(req.id);
+                    req.finishRequest(true);
                 });
             }
             processor.isProcessing = false;
@@ -402,13 +410,13 @@ export function killServer(serverId) {
         console.log("Active Servers after failure:", State.activeServers);
         console.log("Server States:", State.serverStates);
     } else {
-        addLog(`[System] ${serverId} is already down or does not exist.`); 
+        addLog(`[System] ${serverId} is already down or does not exist.`);
     }
 }
 
 export function reviveServer(serverId) {
     if (State.serverStates[serverId] === 'down') {
-        const newStates = {...State.serverStates, [serverId]: 'active' };
+        const newStates = { ...State.serverStates, [serverId]: 'active' };
         let updatedActiveServers = [...State.activeServers, serverId];
         updatedActiveServers.sort((a, b) => {
             const numA = parseInt(a.replace('server', ''), 10);
@@ -416,17 +424,18 @@ export function reviveServer(serverId) {
             return numA - numB;
         });
 
-        const serverDiv = document.querySelector(`.${serverId}`); 
+        const serverDiv = document.querySelector(`.${serverId}`);
         if (serverDiv) {
-            serverDiv.classList.remove('failed'); 
-            serverDiv.textContent = `Server ${serverId.replace('server', '')}`; 
-            serverDiv.style.backgroundColor = getRandomColor(); 
+            serverDiv.classList.remove('failed');
+            serverDiv.classList.remove('degraded');
+            serverDiv.textContent = `Server ${serverId.replace('server', '')}`;
+            serverDiv.style.backgroundColor = getRandomColor();
         }
-        addLog(`[System] ${serverId} revived!`); 
+        addLog(`[System] ${serverId} revived!`);
 
-        const newProcessors = {...State.componentProcessors };
+        const newProcessors = { ...State.componentProcessors };
         if (!newProcessors[serverId]) {
-             newProcessors[serverId] = { isProcessing: false, queue: [], processTime: State.currentServerProcessingTime, currentlyProcessingRequest: null };
+            newProcessors[serverId] = { isProcessing: false, queue: [], processTime: State.currentServerProcessingTime, currentlyProcessingRequest: null };
         } else {
             newProcessors[serverId].isProcessing = false;
             newProcessors[serverId].queue = [];
@@ -434,15 +443,46 @@ export function reviveServer(serverId) {
             newProcessors[serverId].currentlyProcessingRequest = null;
         }
 
+        const newMultipliers = { ...State.serverProcessingTimeMultipliers, [serverId]: 1.0 };
+
         State.updateState({
             activeServers: updatedActiveServers,
             serverStates: newStates,
-            componentProcessors: newProcessors
+            componentProcessors: newProcessors,
+            serverProcessingTimeMultipliers: newMultipliers 
         });
 
         console.log("Active Servers after revival:", State.activeServers);
         console.log("Server States:", State.serverStates);
     } else {
-        addLog(`[System] ${serverId} is already active or does not exist.`); 
+        addLog(`[System] ${serverId} is already active or does not exist.`);
+    }
+}
+
+export function slowDownServer(serverId) {
+    if (State.serverStates[serverId] === 'active') {
+        const newMultipliers = { ...State.serverProcessingTimeMultipliers, [serverId]: 2.0 }; // Example: Slow down 2x
+        State.updateState({ serverProcessingTimeMultipliers: newMultipliers });
+        const serverDiv = document.querySelector(`.${serverId}`);
+        if (serverDiv) {
+            serverDiv.classList.add('degraded');
+        }
+        addLog(`[System] ${serverId} performance degraded (processing time x2.0).`);
+    } else {
+        addLog(`[System] Cannot slow down ${serverId}: not active.`);
+    }
+}
+
+export function restoreServerSpeed(serverId) {
+    if (State.serverStates[serverId] !== 'down') { // Can restore if degraded or already normal
+        const newMultipliers = { ...State.serverProcessingTimeMultipliers, [serverId]: 1.0 };
+        State.updateState({ serverProcessingTimeMultipliers: newMultipliers });
+        const serverDiv = document.querySelector(`.${serverId}`);
+        if (serverDiv) {
+            serverDiv.classList.remove('degraded');
+        }
+        addLog(`[System] ${serverId} performance restored.`);
+    } else {
+        addLog(`[System] Cannot restore speed for ${serverId}: server is down.`);
     }
 }

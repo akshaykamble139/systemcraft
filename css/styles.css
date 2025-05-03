@@ -381,3 +381,72 @@ footer {
     margin: 5px 0;
     color: #333;
 }
+
+.stress-test-group {
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    padding-top: 10px;
+    border-top: 1px solid #eee; /* Optional separator */
+}
+
+.stress-test-group label {
+     font-weight: 600;
+     color: #555;
+     font-size: 0.95em;
+}
+
+.stress-test-group input[type="number"] {
+    width: 70px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.stress-test-group button {
+    padding: 10px 15px;
+    font-size: 1em;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.stress-test-group button:hover:not(:disabled) {
+    background-color: #c82333;
+}
+
+.stress-test-group button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.component.degraded {
+    background-color: #fff9c4 !important; /* Light yellow */
+    border-color: #fdd835; /* Yellow */
+    color: #795548; /* Brownish text */
+}
+
+.tinker-panel #slowServerBtn {
+    background-color: #ffc107; /* Warning yellow */
+    border-color: #ffb300;
+    color: #333;
+}
+.tinker-panel #slowServerBtn:hover {
+    background-color: #ffca28;
+}
+
+.tinker-panel #restoreServerBtn {
+    background-color: #81c784; /* Success green */
+    border-color: #66bb6a;
+    color: #fff;
+}
+.tinker-panel #restoreServerBtn:hover {
+    background-color: #a5d6a7;
+}

@@ -32,6 +32,13 @@ export let currentLbAlgorithm = 'random';
 
 export let nextRequestId = 1;
 
+export let networkLatencyMultiplier_ServerDB = 1.0;
+export let serverProcessingTimeMultipliers = {}; // Will store multipliers like {'server1': 1.5}
+export let totalFailedRequests = 0;
+
+activeServers.forEach(id => {
+    serverProcessingTimeMultipliers[id] = 1.0;
+});
 // Helper to update state variables from other modules
 export function updateState(updates) {
     if (updates.requestCount !== undefined) requestCount = updates.requestCount;
@@ -50,4 +57,7 @@ export function updateState(updates) {
     if (updates.lastServerIndex !== undefined) lastServerIndex = updates.lastServerIndex;
     if (updates.currentLbAlgorithm !== undefined) currentLbAlgorithm = updates.currentLbAlgorithm;
     if (updates.nextRequestId !== undefined) nextRequestId = updates.nextRequestId;
+    if (updates.networkLatencyMultiplier_ServerDB !== undefined) networkLatencyMultiplier_ServerDB = updates.networkLatencyMultiplier_ServerDB;
+    if (updates.serverProcessingTimeMultipliers !== undefined) serverProcessingTimeMultipliers = updates.serverProcessingTimeMultipliers;
+    if (updates.totalFailedRequests !== undefined) totalFailedRequests = updates.totalFailedRequests;
 }
