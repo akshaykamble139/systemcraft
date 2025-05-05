@@ -1,11 +1,12 @@
 // Combines UI handlers, utilities, main initialization, and event listeners.
 import * as State from './state_config.js';
-import { Request, initializeComponentProcessors, addServer, removeServer, killServer, reviveServer, slowDownServer, restoreServerSpeed} from './simulation.js';
+import { Request, initializeComponentProcessors, addServer, removeServer, killServer, reviveServer, slowDownServer, restoreServerSpeed } from './simulation.js';
 
-export function addLog(message) {
+export function addLog(message, type = 'info') {
     const logContainer = document.getElementById('logContainer');
     const timestamp = new Date().toLocaleTimeString();
     const logEntry = document.createElement('div');
+    logEntry.classList.add(`log-${type}`);
     logEntry.textContent = `[${timestamp}] ${message}`;
     logContainer.appendChild(logEntry);
     logContainer.scrollTop = logContainer.scrollHeight;
@@ -29,7 +30,7 @@ export function updateMetrics(responseTime) {
     requestCountSpan.textContent = State.requestCount;
 
     if (responseTime !== -1) {
-         State.updateState({ totalResponseTime: State.totalResponseTime + responseTime });
+        State.updateState({ totalResponseTime: State.totalResponseTime + responseTime });
     }
 
     const successfulRequests = State.requestCount - State.totalFailedRequests;
@@ -247,7 +248,7 @@ function initializeApp() {
                 if (!serverDiv.classList.contains('failed')) {
                     showComponentDetails(server);
                 } else {
-                    addLog(`[System] Cannot show details for failed component ${server}.`);
+                    addLog(`[System] Cannot show details for failed component ${server}.`, "error");
                 }
             });
         }
@@ -288,7 +289,7 @@ function initializeApp() {
                 stressBtn.disabled = false;
             });
         } else if (count <= 0) {
-            addLog("[System] Please enter a positive number of requests for stress test.");
+            addLog("[System] Please enter a positive number of requests for stress test.", "warning");
         }
     });
 
@@ -307,7 +308,7 @@ function initializeApp() {
             const randomServerId = currentlyActive[Math.floor(Math.random() * currentlyActive.length)];
             killServer(randomServerId);
         } else {
-            addLog("[System] No active servers to kill.");
+            addLog("[System] No active servers to kill.", "warning");
         }
     });
 
@@ -317,7 +318,7 @@ function initializeApp() {
             const randomServerId = currentlyDown[Math.floor(Math.random() * currentlyDown.length)];
             reviveServer(randomServerId);
         } else {
-            addLog("[System] No servers are currently down.");
+            addLog("[System] No servers are currently down.", "warning");
         }
     });
 
@@ -351,14 +352,14 @@ function initializeApp() {
         const newMultiplier = parseFloat(event.target.value);
         State.updateState({ networkLatencyMultiplier_ServerDB: newMultiplier });
         // Update DB processor's base time immediately if needed, or rely on next processing tick
-         if (State.componentProcessors['database']) {
-             // This update is slightly redundant if processComponentQueue always recalculates,
-             // but might be useful conceptually or if base time was cached.
-             // Keeping it simple by letting processComponentQueue handle the multiplication.
-         }
+        if (State.componentProcessors['database']) {
+            // This update is slightly redundant if processComponentQueue always recalculates,
+            // but might be useful conceptually or if base time was cached.
+            // Keeping it simple by letting processComponentQueue handle the multiplication.
+        }
         addLog(`[System] Server<->DB network multiplier set to ${newMultiplier.toFixed(1)}x.`);
     });
-    
+
     document.getElementById('slowServerBtn').addEventListener('click', () => {
         const activeAndNotSlowServers = State.activeServers.filter(id =>
             State.serverStates[id] === 'active' &&
@@ -368,20 +369,20 @@ function initializeApp() {
             const randomServerId = activeAndNotSlowServers[Math.floor(Math.random() * activeAndNotSlowServers.length)];
             slowDownServer(randomServerId); // Call the function from simulation.js
         } else {
-            addLog("[System] No active servers available to slow down (or all are already slowed).");
+            addLog("[System] No active servers available to slow down (or all are already slowed).", "warning");
         }
     });
-    
-     document.getElementById('restoreServerBtn').addEventListener('click', () => {
-         const slowedDownServers = Object.keys(State.serverProcessingTimeMultipliers).filter(id =>
-             State.serverStates[id] === 'active' && // Ensure it's active
-             State.serverProcessingTimeMultipliers[id] > 1.0
-         );
+
+    document.getElementById('restoreServerBtn').addEventListener('click', () => {
+        const slowedDownServers = Object.keys(State.serverProcessingTimeMultipliers).filter(id =>
+            State.serverStates[id] === 'active' && // Ensure it's active
+            State.serverProcessingTimeMultipliers[id] > 1.0
+        );
         if (slowedDownServers.length > 0) {
             const randomServerId = slowedDownServers[Math.floor(Math.random() * slowedDownServers.length)];
             restoreServerSpeed(randomServerId); // Call the function from simulation.js
         } else {
-            addLog("[System] No slowed down servers to restore.");
+            addLog("[System] No slowed down servers to restore.", "warning");
         }
     });
 
@@ -392,5 +393,3 @@ function initializeApp() {
 }
 
 initializeApp();
-
-// export { addLog, clearDot, getRandomColor, showComponentDetails, updateMetrics, positionComponentDots, highlightComponent, createRequestDot, moveRequestDot };

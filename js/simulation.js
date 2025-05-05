@@ -91,7 +91,7 @@ export class Request {
 
 
         if (State.activeServers.length === 0) {
-            addLog(`[Request #${this.id}] Failed: No active servers available.`);
+            addLog(`[Request #${this.id}] Failed: No active servers available.`, "error");
             this.finishRequest(true);
             return;
         }
@@ -166,7 +166,7 @@ export class Request {
                 this.chosenServer = selectServer(State.currentLbAlgorithm);
 
                 if (this.chosenServer === null) {
-                    addLog(`[Request #${this.id}] Failed: Load Balancer found no active servers.`);
+                    addLog(`[Request #${this.id}] Failed: Load Balancer found no active servers.`, "error");
                     this.failed = true;
                     clearDot(this.id);
                     this.finishRequest(true);
@@ -276,7 +276,7 @@ export function addServer() {
         if (!newServerDiv.classList.contains('failed')) {
             showComponentDetails(newServerId);
         } else {
-            addLog(`[System] Cannot show details for failed component ${newServerId}.`);
+            addLog(`[System] Cannot show details for failed component ${newServerId}.`, "error");
         }
     });
 
@@ -304,7 +304,7 @@ export function addServer() {
 
 export function removeServer() {
     if (State.activeServers.length <= 1) {
-        addLog("[System] Cannot remove server: At least one active server is required.");
+        addLog("[System] Cannot remove server: At least one active server is required.", "warning");
         return;
     }
 
@@ -323,13 +323,13 @@ export function removeServer() {
         const processor = State.componentProcessors[serverToRemoveId];
         if (processor) {
             if (processor.currentlyProcessingRequest) {
-                addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverToRemoveId} removal.`);
+                addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverToRemoveId} removal.`, "error");
                 processor.currentlyProcessingRequest.failed = true;
                 clearDot(processor.currentlyProcessingRequest.id);
                 processor.currentlyProcessingRequest.finishRequest(true);
             }
             if (processor.queue.length > 0) {
-                addLog(`[System] ${processor.queue.length} requests failed in ${serverToRemoveId}'s queue.`);
+                addLog(`[System] ${processor.queue.length} requests failed in ${serverToRemoveId}'s queue.`, "error");
                 processor.queue.forEach(req => {
                     req.failed = true;
                     clearDot(req.id);
@@ -364,7 +364,7 @@ export function removeServer() {
             console.log("Server States:", State.serverStates);
         }
     } else {
-        addLog("[System] No active servers available to remove.");
+        addLog("[System] No active servers available to remove.", "warning");
     }
 }
 
@@ -378,18 +378,18 @@ export function killServer(serverId) {
             serverDiv.classList.add('failed');
             serverDiv.textContent = `Server ${serverId.replace('server', '')} (DOWN)`;
         }
-        addLog(`[System] ${serverId} failed!`);
+        addLog(`[System] ${serverId} failed!`, "error");
 
         const processor = State.componentProcessors[serverId];
         if (processor) {
             if (processor.currentlyProcessingRequest) {
-                addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverId} failure.`);
+                addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverId} failure.`, "error");
                 processor.currentlyProcessingRequest.failed = true;
                 clearDot(processor.currentlyProcessingRequest.id);
                 processor.currentlyProcessingRequest.finishRequest(true);
             }
             if (processor.queue.length > 0) {
-                addLog(`[System] ${processor.queue.length} requests failed in ${serverId}'s queue.`);
+                addLog(`[System] ${processor.queue.length} requests failed in ${serverId}'s queue.`, "error");
                 processor.queue.forEach(req => {
                     req.failed = true;
                     clearDot(req.id);
@@ -410,7 +410,7 @@ export function killServer(serverId) {
         console.log("Active Servers after failure:", State.activeServers);
         console.log("Server States:", State.serverStates);
     } else {
-        addLog(`[System] ${serverId} is already down or does not exist.`);
+        addLog(`[System] ${serverId} is already down or does not exist.`, "warning");
     }
 }
 
@@ -449,13 +449,13 @@ export function reviveServer(serverId) {
             activeServers: updatedActiveServers,
             serverStates: newStates,
             componentProcessors: newProcessors,
-            serverProcessingTimeMultipliers: newMultipliers 
+            serverProcessingTimeMultipliers: newMultipliers
         });
 
         console.log("Active Servers after revival:", State.activeServers);
         console.log("Server States:", State.serverStates);
     } else {
-        addLog(`[System] ${serverId} is already active or does not exist.`);
+        addLog(`[System] ${serverId} is already active or does not exist.`, "warning");
     }
 }
 
@@ -469,7 +469,7 @@ export function slowDownServer(serverId) {
         }
         addLog(`[System] ${serverId} performance degraded (processing time x2.0).`);
     } else {
-        addLog(`[System] Cannot slow down ${serverId}: not active.`);
+        addLog(`[System] Cannot slow down ${serverId}: not active.`, "warning");
     }
 }
 
@@ -483,6 +483,6 @@ export function restoreServerSpeed(serverId) {
         }
         addLog(`[System] ${serverId} performance restored.`);
     } else {
-        addLog(`[System] Cannot restore speed for ${serverId}: server is down.`);
+        addLog(`[System] Cannot restore speed for ${serverId}: server is down.`, "warning");
     }
 }
