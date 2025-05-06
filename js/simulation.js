@@ -242,9 +242,9 @@ export class Request {
                 newCounts[this.chosenServer]++;
                 State.updateState({ serverCounts: newCounts });
             }
-            console.log(`[Request #${this.id}] Completed in ${responseTime}ms by ${this.chosenServer || 'N/A'} (Cache ${this.hitCache ? 'HIT' : 'MISS'})`);
+            // console.log(`[Request #${this.id}] Completed in ${responseTime}ms by ${this.chosenServer || 'N/A'} (Cache ${this.hitCache ? 'HIT' : 'MISS'})`);
         } else {
-            console.log(`[Request #${this.id}] Failed after ${responseTime}ms`);
+            // console.log(`[Request #${this.id}] Failed after ${responseTime}ms`);
             State.updateState({ totalFailedRequests: State.totalFailedRequests + 1 });
         }
         updateMetrics(failed ? -1 : responseTime);

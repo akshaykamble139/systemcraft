@@ -613,22 +613,27 @@ footer {
     }
 
     .stress-test-group {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 5px;
-        justify-content: flex-start;
+        display: flex;
+        align-items: center;
+        gap: 0;
     }
-
-    .stress-test-group label,
+    
+    .stress-input-group {
+        flex: 1;
+        margin-right: 0;
+    }
+    
     .stress-test-group input[type="number"] {
         width: 100%;
-        box-sizing: border-box;
-        text-align: left;
-        margin-left: 0;
+        min-width: 60px;
+        max-width: 80px;
     }
-
-    .stress-test-group input[type="number"] {
+    
+    #startStressTestBtn {
+        flex-shrink: 0;
         width: auto;
+        padding: 10px 8px;
+        margin-left: 2px;
     }
 
     .controls-column .control-group:has(button) {
@@ -760,4 +765,40 @@ footer {
 
 .controls-column #restoreServerBtn:focus {
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.5);
+}
+
+.input-tooltip {
+    position: absolute;
+    background: #ff4444;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    display: none;
+    z-index: 100;
+    animation: fadeOut 0.5s ease 5s forwards;
+}
+
+@keyframes fadeOut {
+    to { opacity: 0; display: none; }
+}
+
+.input-tooltip:after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #ff4444 transparent transparent transparent;
+}
+
+.param-group, .stress-input-group {
+    position: relative;
+    margin-bottom: 10px;
 }

@@ -209,6 +209,33 @@ function sendMultipleRequests(count, interval = 100, onComplete = null) {
     }, interval);
 }
 
+function validateInput(inputId, min, max, defaultValue) {
+    const input = document.getElementById(inputId);
+    const tooltip = input.nextElementSibling;
+    
+    let value = inputId === 'networkMultiplierInput' 
+        ? parseFloat(input.value) 
+        : parseInt(input.value);
+    
+    const isValid = !isNaN(value) && value >= min && value <= max;
+    
+    if (!isValid) {
+        input.classList.add('input-error');
+        tooltip.style.display = 'block';
+        tooltip.style.opacity = '1';
+        tooltip.style.animation = 'none';
+        void tooltip.offsetWidth; // Trigger reflow
+        tooltip.style.animation = 'fadeOut 0.5s ease 5s forwards';
+        value = Math.min(max, Math.max(min, isNaN(value) ? defaultValue : value));
+        input.value = value;
+        return {value: value, isValid: false};
+    }
+    
+    input.classList.remove('input-error');
+    tooltip.style.display = 'none';
+    return {value: value, isValid: true};
+}
+
 function initializeApp() {
     initializeComponentProcessors();
 
@@ -265,6 +292,62 @@ function initializeApp() {
         }
     });
 
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('input', function() {
+            const tooltip = this.nextElementSibling;
+            if (tooltip && tooltip.classList.contains('input-tooltip')) {
+                const min = parseFloat(this.min);
+                const max = parseFloat(this.max);
+                const value = parseFloat(this.value);
+                
+                if (!isNaN(value) && value >= min && value <= max) {
+                    this.classList.remove('input-error');
+                    tooltip.style.display = 'none';
+                } else {
+                    this.classList.add('input-error');
+                    tooltip.style.display = 'block';
+                    tooltip.style.opacity = '1';
+                    tooltip.style.animation = 'none';
+                    void tooltip.offsetWidth;
+                    tooltip.style.animation = 'fadeOut 0.5s ease 5s forwards';
+                }
+            }
+        });
+    });
+
+    document.getElementById('stressRequestCount').addEventListener('change', () => {
+        validateInput('stressRequestCount', 10, 1000, 100);
+    });
+    
+    document.getElementById('dbLatencyInput').addEventListener('change', () => {
+        const validation = validateInput('dbLatencyInput', 50, 2000, 300);
+        State.updateState({ currentDbLatency: validation.value });
+        if (State.componentProcessors['database']) {
+            State.componentProcessors['database'].processTime = validation.value;
+        }
+    });
+    
+    document.getElementById('serverProcessingInput').addEventListener('change', () => {
+        const validation = validateInput('serverProcessingInput', 20, 1000, 200);
+        State.updateState({ currentServerProcessingTime: validation.value });
+        Object.keys(State.componentProcessors).forEach(compName => {
+            if (compName.startsWith('server')) {
+                State.componentProcessors[compName].processTime = validation.value;
+            }
+        });
+    });
+    
+    document.getElementById('cacheHitRateInput').addEventListener('change', () => {
+        const validation = validateInput('cacheHitRateInput', 0, 100, 70);
+        const rate = validation.value / 100;
+        State.updateState({ currentCacheHitRate: rate, cacheHitRate: rate });
+    });
+    
+    document.getElementById('networkMultiplierInput').addEventListener('change', () => {
+        const validation = validateInput('networkMultiplierInput', 1, 10, 1.0);
+        State.updateState({ networkLatencyMultiplier_ServerDB: validation.value });
+    });    
+
     document.getElementById('sendRequestBtn').addEventListener('click', () => {
         let currentId = State.nextRequestId;
         State.updateState({ nextRequestId: currentId + 1 });
@@ -276,20 +359,21 @@ function initializeApp() {
     });
 
     document.getElementById('startStressTestBtn').addEventListener('click', () => {
-        const countInput = document.getElementById('stressRequestCount');
         const stressBtn = document.getElementById('startStressTestBtn');
-        const count = parseInt(countInput.value);
-        const interval = 10; // Send requests quickly
-
-        if (count > 0 && !stressBtn.disabled) {
-            addLog(`[System] Starting Stress Test: ${count} requests...`);
-            stressBtn.disabled = true;
-            sendMultipleRequests(count, interval, () => {
-                addLog(`[System] Stress Test Finished.`);
-                stressBtn.disabled = false;
-            });
-        } else if (count <= 0) {
-            addLog("[System] Please enter a positive number of requests for stress test.", "warning");
+        const validation = validateInput('stressRequestCount', 10, 1000, 100);
+        
+        if (validation.isValid) {
+            const count = validation.value;
+            const interval = 10;
+            
+            if (count > 0 && !stressBtn.disabled) {
+                addLog(`[System] Starting Stress Test: ${count} requests...`);
+                stressBtn.disabled = true;
+                sendMultipleRequests(count, interval, () => {
+                    addLog(`[System] Stress Test Finished.`);
+                    stressBtn.disabled = false;
+                });
+            }
         }
     });
 
