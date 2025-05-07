@@ -16,13 +16,11 @@
     <div class="system-layout">
         <div class="architecture">
             <div class="component client">Client</div>
-            <div class="arrow">↓</div>
-
-            <div class="component load-balancer">Load Balancer</div>
-            <div class="arrow">↓</div>
+            <div class="arrow client-to-server">↓</div> <!-- Arrow after client -->
+            <div class="component load-balancer hidden">Load Balancer</div>
+            <div class="arrow lb-to-servers hidden">↓</div>
             <div class="server-group">
                 <div class="component server1">Server 1</div>
-                <div class="component server2">Server 2</div>
             </div>
 
             <div class="arrow">↓</div>
@@ -66,7 +64,7 @@
                 </div>
                 <div class="param-group">
                     <label for="cacheHitRateInput">Cache Hit Rate (%):</label>
-                    <input type="number" id="cacheHitRateInput" value="70" min="0" max="100">
+                    <input type="number" id="cacheHitRateInput" value="0" min="0" max="100">
                     <div class="input-tooltip">Must be between 0-100</div>
                 </div>
                 <div class="param-group">

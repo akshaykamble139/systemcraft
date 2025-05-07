@@ -802,3 +802,7 @@ footer {
     position: relative;
     margin-bottom: 10px;
 }
+
+.hidden {
+    display: none !important;
+}

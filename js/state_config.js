@@ -4,16 +4,15 @@ export let requestCount = 0;
 export let totalResponseTime = 0;
 export let serverCounts = {};
 
-export let activeServers = ['server1', 'server2'];
+export let activeServers = ['server1'];
 export let serverStates = {
     'server1': 'active',
-    'server2': 'active'
 };
-export let nextServerId = 3;
+export let nextServerId = 2;
 
 export let cacheHits = 0;
 export let cacheMisses = 0;
-export let cacheHitRate = 0.7;
+export let cacheHitRate = 0;
 
 export const DEFAULT_SERVER_PROCESSING_TIME = 200;
 export const DEFAULT_DATABASE_LATENCY = 300;

@@ -97,11 +97,21 @@ export class Request {
         }
 
         this.currentStep = 0;
-        this.steps = [
-            { component: 'client', message: 'Request sent from Client.' },
-            { component: 'load-balancer', message: 'Load Balancer routing request...' },
-            { component: 'client', message: 'Response returned to Client.' }
-        ];
+
+        this.steps = State.activeServers.length > 1
+            ? [
+                { component: 'client', message: 'Request sent from Client.' },
+                { component: 'load-balancer', message: 'Load Balancer routing request...' },
+                { component: 'client', message: 'Response returned to Client.' }
+            ]
+            : [
+                { component: 'client', message: 'Request sent from Client.' },
+                { component: State.activeServers[0], message: `Request received by ${State.activeServers[0]}.` },
+                { component: 'cache', message: `[${State.activeServers[0]}] checking Cache.` },
+                { component: 'database', message: 'Cache MISS, querying Database.' },
+                { component: State.activeServers[0], message: `Database returned data to ${State.activeServers[0]}.` },
+                { component: 'client', message: 'Response returned to Client.' }
+            ];
 
         createRequestDot(this.id);
         this.runNextStep();
@@ -131,6 +141,9 @@ export class Request {
             return;
         }
 
+        if (State.activeServers.length === 1) {
+            this.chosenServer = State.activeServers[0];
+        }
         highlightComponent(component);
         this.currentComponent = component;
 
@@ -296,6 +309,11 @@ export function addServer() {
         serverProcessingTimeMultipliers: updatedServerProcessingMultipliers
     });
 
+    if (State.activeServers.length === 2) {
+        document.querySelector('.load-balancer').classList.remove('hidden');
+        document.querySelector('.lb-to-servers').classList.remove('hidden');
+        document.querySelector('.client-to-server').classList.remove('hidden');
+    }
 
     addLog(`[System] Added ${newServerId}`);
     console.log("Active Servers:", State.activeServers);
@@ -363,6 +381,13 @@ export function removeServer() {
             console.log("Active Servers:", State.activeServers);
             console.log("Server States:", State.serverStates);
         }
+
+        if (State.activeServers.length === 1) {
+            document.querySelector('.load-balancer').classList.add('hidden');
+            document.querySelector('.lb-to-servers').classList.add('hidden');
+            document.querySelector('.client-to-server').classList.remove('hidden');
+        }
+
     } else {
         addLog("[System] No active servers available to remove.", "warning");
     }
@@ -383,16 +408,25 @@ export function killServer(serverId) {
         const processor = State.componentProcessors[serverId];
         if (processor) {
             if (processor.currentlyProcessingRequest) {
+                const reqId = processor.currentlyProcessingRequest.id;
+                clearDot(reqId);
+                document.getElementById(`request-dot-${reqId}`)?.remove(); // Force remove
+            }
+            
+            processor.queue.forEach(req => {
+                clearDot(req.id);
+                document.getElementById(`request-dot-${req.id}`)?.remove(); // Force remove
+            });
+
+            if (processor.currentlyProcessingRequest) {
                 addLog(`[System] Request #${processor.currentlyProcessingRequest.id} failed due to ${serverId} failure.`, "error");
                 processor.currentlyProcessingRequest.failed = true;
-                clearDot(processor.currentlyProcessingRequest.id);
                 processor.currentlyProcessingRequest.finishRequest(true);
             }
             if (processor.queue.length > 0) {
                 addLog(`[System] ${processor.queue.length} requests failed in ${serverId}'s queue.`, "error");
                 processor.queue.forEach(req => {
                     req.failed = true;
-                    clearDot(req.id);
                     req.finishRequest(true);
                 });
             }

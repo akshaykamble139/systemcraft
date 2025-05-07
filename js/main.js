@@ -19,7 +19,7 @@ export function getRandomColor() {
 
 
 export function highlightComponent(componentClass) {
-    const component = document.querySelector(`.${componentClass}`);
+    const component = document.querySelector(`.${componentClass}:not(.hidden)`);
     if (component) {
         component.classList.add('highlight');
     }
@@ -72,7 +72,7 @@ export function createRequestDot(id) {
 
 export function moveRequestDot(id, componentName, duration) {
     const dot = document.getElementById(`request-dot-${id}`);
-    const component = document.querySelector(`.${componentName}`);
+    const component = document.querySelector(`.${componentName}:not(.hidden)`); 
 
     if (!dot || !component) {
         console.warn(`Attempted to move dot ${id} to component .${componentName}, but one was not found. Removing dot.`);
@@ -469,6 +469,12 @@ function initializeApp() {
             addLog("[System] No slowed down servers to restore.", "warning");
         }
     });
+
+    if (State.activeServers.length <= 1) {
+        document.querySelector('.load-balancer').classList.add('hidden');
+        document.querySelector('.lb-to-servers').classList.add('hidden');
+        document.querySelector('.client-to-server').classList.remove('hidden');
+    }
 
     addLog("[System] Application Initialized.");
     console.log("Initial Active Servers:", State.activeServers);
